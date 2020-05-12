@@ -2,9 +2,7 @@
 
 # Trap-Limited Conversion Efficiency
 
-A collections of scripts written by Dr Sunghyun Kim for calculating the solar energy conversion limits of inorganic materials. It builds on the [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) package.
-There are plans for the underlying code to be refactored into a coherent workflow. 
-There are currently three folders:
+A collections of scripts written by Dr Sunghyun Kim for calculating the solar energy conversion limits of inorganic materials. It builds on the [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) package. There are plans for the underlying code to be refactored into a coherent workflow.  There are currently three folders:
 
 ## [TLC](tlc)
 
@@ -20,14 +18,12 @@ This code calculates the optical absorption function based on the output of [Wan
 
 ### Dependencies 
 
-In addition to standard python libraries (`pip install pandas numpy matplotlib scipy pickle seaborn copy re subprocess`),  
-the codes rely on output from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) and [SC-Fermi](https://github.com/jbuckeridge/sc-fermi). We acknowledge that `SQlimit.py` is taken from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5 solar spectrum `ASTMG173.csv` is taken from https://rredc.nrel.gov/solar//spectra/am1.5/. 
+In addition to standard python libraries (`pip install pandas numpy matplotlib scipy pickle seaborn copy re subprocess`), the codes rely on output from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) and [SC-Fermi](https://github.com/jbuckeridge/sc-fermi). We acknowledge that `SQlimit.py` is taken from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5 solar spectrum `ASTMG173.csv` is taken from https://rredc.nrel.gov/solar//spectra/am1.5/. 
 
 ### Development
 
 The project is hosted on [Github](https://github.com/WMD-group/traplimitedconversion).
-Please use the [issue tracker](https://github.com/WMD-group/carriercapture/issues/) for feature requests, bug reports and more general questions.
-If you would like to contribute, please do so via a pull request.
+Please use the [issue tracker](https://github.com/WMD-group/carriercapture/issues/) for feature requests, bug reports and more general questions. If you would like to contribute, please do so via a pull request.
 
 
 
