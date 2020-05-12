@@ -20,7 +20,8 @@ This code calculates the optical absorption function based on the output of [Wan
 
 ### Dependencies 
 
-In addition to standard python libraries (`pip install pandas numpy matplotlib scipy pickle seaborn copy re subprocess`), `SQlimit.py` is taken from https://github.com/marcus-cmc/Shockley-Queisser-limit, and the notebook uses output from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) and [SC-Fermi](https://github.com/jbuckeridge/sc-fermi).
+In addition to standard python libraries (`pip install pandas numpy matplotlib scipy pickle seaborn copy re subprocess`),  
+the codes rely on output from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) and [SC-Fermi](https://github.com/jbuckeridge/sc-fermi). We acknowledge that `SQlimit.py` is taken from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5 solar spectrum `ASTMG173.csv` is taken from https://rredc.nrel.gov/solar//spectra/am1.5/. 
 
 ### Development
 
