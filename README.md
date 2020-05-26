@@ -2,7 +2,7 @@
 
 # Trap-Limited Conversion Efficiency
 
-A collections of scripts written by Dr Sunghyun Kim for calculating the solar energy conversion limits of inorganic materials. It builds on the [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) package. There are plans for the underlying code to be refactored into a coherent workflow.  There are currently three folders:
+A collections of scripts written by [Dr Sunghyun Kim](https://frssp.github.io) for calculating the solar energy conversion limits of inorganic materials. It builds on the [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) package. There are plans for the underlying code to be refactored into a coherent workflow.  There are currently three folders:
 
 ## [TLC](tlc)
 
