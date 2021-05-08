@@ -5,8 +5,8 @@
 
 #### 2. LWANNIER90 run  
 - Add `LWANNIER90=.TRUE.` (which switches on the interface between VASP and WANNIER90) to INCAR.   
-- Create a `wannier90.win` file in the same calculation directory. Analyse band composition and set `num_wann`, `num_bands`, `exclude_bands`, disentanglement window and projections in `wannier90.win` file.  
-- Read `WAVECAR` (`ISTART = 1`) and run VASP to generate `wannier90.mmn`, `wannier90.eig` and `wannier90.amn` files. The atomic position and cell vector in `wannier90.win` file will be automatically filled by VASP2wannier90 interface.
+- Create a `wannier90.win` file in the same calculation directory. Analyse band composition and set `num_wann`, `num_bands`, `exclude_bands`, disentanglement window and projections block in `wannier90.win` file.  
+- Read `WAVECAR` (`ISTART = 1`) and run VASP to generate `wannier90.mmn`, `wannier90.eig` and `wannier90.amn` files. The `unit_cell_cart`, `atom_cart`, `mp_grid` and `kpoints` blocks in `wannier90.win` file will be automatically filled by VASP2wannier90 interface.
 
 #### 3. Wannier90 calculation  
 - Run wannier90 (wannier90.x wannier90.win) to generate `wannier90.wout` and `wannier90.chk` files.
