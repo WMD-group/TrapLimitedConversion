@@ -1,4 +1,4 @@
-## Steps to calculate optical conductivity using VASP(5.4.4)
+## Steps to calculate optical conductivity using VASP and Wannier90
 
 #### 1. Standard VASP run  
 - Structural relaxation and SCF calculation to obtain the wavefunction `WAVECAR` file.
@@ -16,7 +16,8 @@
 - Run postw90 (postw90.x wannier90.win) to get `wannier90-kubo_*.dat` files.
 
 
-### An example of `wannier90.win` file:  
+### An example of `wannier90.win` file  
+```
 num_wann = 33   
 num_bands = 85  
 exclude_bands = 1-11  
@@ -25,12 +26,14 @@ dis_froz_min=0
 dis_mix_ratio=1  
 num_iter=400  
 dis_num_iter=2200  
+
 Begin Projections  
 Cu:s;d  
 Zn:s  
 Sn:s;p  
 Se:sp3  
 End Projections  
+
 wannier_plot = true  
 wannier_plot_supercell = 3  
 bands_plot      =  true  
@@ -53,10 +56,15 @@ fermi_energy = 3.5
 kubo_freq_step = 0.005  
 smr_type = m-p4  
 adpt_smr_max = 0.05  
-... 
+...
+```
 
-### Compilation guide:  
+### Compilation guide  
 - VASP: https://friendly-broccoli-22e4d939.pages.github.io/hpc_usage/cx1/compilation/vasp/vasp/  
 - QE: https://friendly-broccoli-22e4d939.pages.github.io/hpc_usage/cx1/compilation/wannier90/  
 
   Note that you need to join the Imperial College Github organisation to access to it ([link](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/research-support-systems/github/working-with-githubcom/)) 
+  
+### Tips  
+1. You may need to increase `NBANDS` to get reasonable disentanglement window.
+2. Check the convergence with respect to `berry_kmesh`.
