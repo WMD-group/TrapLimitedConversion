@@ -18,7 +18,7 @@ The method has been reported in ["Upper limit to the photovoltaic efficiency of 
 
 The original TLC implementation assumed the Shockley–Queisser limit for radiative processes (i.e. above the band gap, all photons are fully absorbed). Here we use a frequency-dependent optical absorption coefficient to calculate the thickness-dependent direct absorption and electron-hole recombination. This approach results in a more realistic estimate of the short-circuit current and device performance limits. The original TLC behaviour is obtained by setting `l_sq=true`. The folder contains a worked example for Cu<sub>2</sub>ZnSnS<sub>4</sub>  in the Jupyter Notebook `aTLC.ipynb`.
 
-The method has been reported in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells", 2021]().
+The method has been reported in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells", 2021](https://arxiv.org/abs/2104.13572).
 
 ## [Wannier90 Absorption](wannier90-absorption)
 
