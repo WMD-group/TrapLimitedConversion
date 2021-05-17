@@ -5,11 +5,12 @@
 
 #### 2. LWANNIER90 run  
 - Add `LWANNIER90=.TRUE.` (which switches on the interface between VASP and WANNIER90) to INCAR.   
-- Create a `wannier90.win` file in the same calculation directory. Analyse band composition and set `num_wann`, `num_bands`, `exclude_bands`, disentanglement window and projections block in `wannier90.win` file.  
-- Read `WAVECAR` (`ISTART = 1`) and run VASP to generate `wannier90.mmn`, `wannier90.eig` and `wannier90.amn` files. The `unit_cell_cart`, `atom_cart`, `mp_grid` and `kpoints` blocks in `wannier90.win` file will be automatically filled by VASP2wannier90 interface.
+- Create a `wannier90.win` file in the same calculation directory. Analyse band composition and set `num_wann`, `num_bands`, `exclude_bands`, disentanglement window and projections block in the `wannier90.win` file.  
+- Read `WAVECAR` (`ISTART = 1`) and run VASP to generate `wannier90.mmn`, `wannier90.eig` and `wannier90.amn` files. The `unit_cell_cart`, `atom_cart`, `mp_grid` and `kpoints` blocks in the `wannier90.win` file will be automatically filled by VASP2wannier90 interface.
 
 #### 3. Wannier90 calculation  
-- Run wannier90 (wannier90.x wannier90.win) to generate `wannier90.wout` and `wannier90.chk` files.
+- Add the bandstructure plot flags to the `wannier90.win` file. Run wannier90 (wannier90.x wannier90.win) to generate the bandstructure files `wannier90_band.dat`, `wannier90_band.gnu`, `wannier90_band.agr` and other output files `wannier90.wout` and `wannier90.chk`. Compare the bandstructure obtained by WANNIER90 and VASP to make sure the Wannier interpolations are reasonable.
+- (Optionally) Adjust the disentanglement window and rerun wannier90. 
 
 #### 4. Optical conductivity calculation  
 - Add `berry = true`, `berry_task = kubo`, `fermi_energy`, `berry_kmesh`, `kubo_freq_max` into `wannier90.win` file.  
@@ -67,4 +68,5 @@ adpt_smr_max = 0.05
   
 ### Tips  
 1. You may need to increase `NBANDS` to get reasonable disentanglement window.
-2. Check the convergence with respect to `berry_kmesh`.
+2. Check `spread` in the `wannier90.wout` file in step 3 to ensure spread is small enough (usually < 5 Ang^2).
+3. Check the convergence with respect to `berry_kmesh` in step 4.
