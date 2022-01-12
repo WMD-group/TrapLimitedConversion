@@ -22,7 +22,8 @@ def calc_eps(opt_conductivity):
     s_real = opt_conductivity.s_real #* sigma_si2cgs # [S/cm] -> [1/s]
     s_imag = opt_conductivity.s_imag #* sigma_si2cgs # [S/cm] -> [1/s]
     sigma = s_real + s_imag * 1j
-    eps = 1 + 1j * np.pi * sigma / w / vac_permittivity * 100 # [si] [cm] -> [m]
+    eps = 1 + 1j * 2 * sigma / w / vac_permittivity * 100 # [si] [cm] -> [m]  # for spin-unpolarised systems
+    # eps = 1 + 1j * sigma / w / vac_permittivity * 100 # [si] [cm] -> [m]    # for spin-polarised systems
     eps_imag = np.imag(np.array(eps))
 
     # find first occurence of eps_imag < 0 
