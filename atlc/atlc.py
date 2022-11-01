@@ -239,7 +239,7 @@ class tlc(object):
     def _calc_absorptivity(self):
         self.__read_alpha()
         absorptivity = 1 - \
-            np.exp(-2 * self.alpha.alpha * self.thickness * 1E7)  # nm -> cm
+            np.exp(-2 * self.alpha.alpha * self.thickness * 1E-7)  # nm -> cm
         self.absorptivity = np.interp(
             Es, self.alpha.E[::-1], absorptivity[::-1])  # W m^-2 eV^-1
 
