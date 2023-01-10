@@ -1,11 +1,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
-[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FWMD-group%2FTrapLimitedConversion&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 [![DOI](https://zenodo.org/badge/263363730.svg)](https://zenodo.org/badge/latestdoi/263363730)
 
 # Trap-Limited Conversion Efficiency
 
-A collections of scripts first written by [Dr Sunghyun Kim](https://frssp.github.io) for calculating the solar energy conversion limits of inorganic crystals. It relies on defect-mediated non-radiative recombination values calculated from the [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) package. 
+A collections of scripts first written for calculating the solar energy conversion limits of inorganic crystals. It relies on defect-mediated non-radiative recombination values calculated from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl). 
+
+***Package under construction*** 
 
 There are currently three folders:
 
@@ -19,7 +20,7 @@ The method has been reported in ["Upper limit to the photovoltaic efficiency of 
 
 The original TLC implementation assumed the Shockley–Queisser limit for radiative processes (i.e. above the band gap, all photons are fully absorbed). Here we use a frequency-dependent optical absorption coefficient to calculate the thickness-dependent direct absorption and electron-hole recombination. This approach results in a more realistic estimate of the short-circuit current and device performance limits. The original TLC behaviour is obtained by setting `l_sq=true`. The folder contains a worked example for Cu<sub>2</sub>ZnSnS<sub>4</sub>  in the Jupyter Notebook `aTLC.ipynb`.
 
-The method has been reported in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells", 2021](https://arxiv.org/abs/2104.13572).
+The method has been reported in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells", 2021](https://aip.scitation.org/doi/10.1063/5.0049143).
 
 ## [Wannier90 Absorption](wannier90-absorption)
 
@@ -32,7 +33,4 @@ In addition to standard python libraries (`pip install pandas numpy matplotlib s
 ### Development
 
 The project is hosted on [Github](https://github.com/WMD-group/traplimitedconversion). Please use the [issue tracker](https://github.com/WMD-group/carriercapture/issues/) for feature requests, bug reports, and more general questions. If you would like to contribute, please do so via a pull request.
-
-
-
 
