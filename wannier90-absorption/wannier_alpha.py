@@ -63,7 +63,7 @@ def calc_alpha(eps):
     k = np.imag(np.array(N))
     alpha = 2 * w / c * k
     alpha = np.array(alpha)
-    alpha[np.where(alpha < 1E-10)] = 1E-10
+    alpha[np.where(alpha < 1E-10)] = 1E-100
     return alpha
 
 
