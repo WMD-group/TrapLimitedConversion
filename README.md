@@ -14,7 +14,7 @@ We acknowledge that some code related to radiative detailed balance was adapted 
 
 * [ShakeNBreak](https://shakenbreak.readthedocs.io) - approach to find symmetry broken solutions 
 
-* [SC-Fermi](https://github.com/jbuckeridge/sc-fermi) / [SC-Fermi](https://github.com/bjmorgan/py-sc-fermi) - equilibrium self-consistent Fermi level in Fortran / Python 
+* [SC-Fermi](https://github.com/jbuckeridge/sc-fermi) / [py-SC-Fermi](https://github.com/bjmorgan/py-sc-fermi) - equilibrium self-consistent Fermi level in Fortran / Python 
 
 * [Wannier90](http://www.wannier.org) - allows calculation of optical absorption with dense k-point sampling
 
