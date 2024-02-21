@@ -1,0 +1,11 @@
+pandas 
+numpy 
+matplotlib 
+scipy 
+pickle 
+seaborn 
+copy 
+re 
+subprocess
+pytest>=7.1.3
+pytest-mpl
