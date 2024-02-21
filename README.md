@@ -20,9 +20,9 @@ We acknowledge that some code related to radiative detailed balance was adapted 
 
 ## Used in
 
-* The original method is reported in ["Upper limit to the photovoltaic efficiency of imperfect crystals from first principles", Energy & Environmental Science, 2020](https://pubs.rsc.org/en/content/articlelanding/2020/ee/d0ee00291g).
+* The original method is reported in ["Upper limit to the photovoltaic efficiency of imperfect crystals from first principles", Energy & Environmental Science](https://pubs.rsc.org/en/content/articlelanding/2020/ee/d0ee00291g)
 
-* An update to include the optical absorption spectrum in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells", 2021](https://aip.scitation.org/doi/10.1063/5.0049143).
+* An update to include the optical absorption spectrum in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells"](https://aip.scitation.org/doi/10.1063/5.0049143)
 
 * Application to CdTe in ["Rapid recombination by cadmium vacancies in CdTe"](https://pubs.acs.org/doi/10.1021/acsenergylett.1c00380)
 
