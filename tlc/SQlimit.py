@@ -26,7 +26,7 @@ eV = 1.6021766208e-19  # joule        , eV to joule
 q = 1.6021766208e-19  # C             , elemental charge
 
 # http://rredc.nrel.gov/solar/spectra/am1.5/
-ref_solar = pd.read_csv("ASTMG173.csv", header=1)  # nm vs W m^-2 nm^-1
+ref_solar = pd.read_csv("../data/ASTMG173.csv", header=1)  # nm vs W m^-2 nm^-1
 # data range: 280nm to 4000nm, 0.31eV to 4.42857 eV
 # WL (nm), W*m-2*nm-1
 WL, solar_per_nm = ref_solar.iloc[:, 0], ref_solar.iloc[:, 2]
