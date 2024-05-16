@@ -11,7 +11,7 @@ import numpy as np
 import pickle
 from pymatgen.core.structure import Structure
 import matplotlib.pyplot as plt
-from scipy.optimize import fsolve
+from scipy.optimize import brentq
 kB = 8.6173303E-5   # eV K-1
 
 
@@ -292,8 +292,7 @@ class Scfermi:
         energy = dos[:, 0]
         dos = dos[:, 1]
 
-        sc_efermi = fsolve(_get_excess_charge, x0=self.e_gap /
-                           4., args=(energy, dos, vol, self.T))[0]
+        sc_efermi = brentq(_get_excess_charge, -1.0, self.e_gap + 1.0, args=(energy, dos, vol, self.T))
 
         self.fermi_level = sc_efermi
         for defect in self.defects:
