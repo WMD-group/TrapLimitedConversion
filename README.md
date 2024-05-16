@@ -4,33 +4,30 @@
 
 # Trap-Limited Conversion Efficiency
 
-A collections of scripts first written for calculating the solar energy conversion limits of inorganic crystals. It relies on defect-mediated non-radiative recombination values calculated from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl). 
+Tools for calculating the solar energy conversion limits of inorganic crystals. The approach relies on defect-mediated non-radiative recombination values calculated from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) or similar packages such as [NonRad](https://github.com/mturiansky/nonrad).
 
-***Package under construction*** 
+We acknowledge that some code related to radiative detailed balance was adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is from [NREL](https://www.nrel.gov/grid/solar-resource/spectra.html). 
 
-There are currently three folders:
+## Related Packages
 
-## [TLC](tlc)
+* [Doped](https://doped.readthedocs.io) - pre- and post-processing of point defect calculations
 
-An approach to calculate an upper-limit to photovoltaic efficiency based on an equilibrium population of defects with pre-calculated carrier capture coefficients. The folder contains a worked example for Cu<sub>2</sub>ZnSnSe<sub>4</sub> in the Jupyter Notebook `TLC_CZTSe.ipynb`.
+* [ShakeNBreak](https://shakenbreak.readthedocs.io) - approach to find symmetry broken solutions 
 
-The method has been reported in ["Upper limit to the photovoltaic efficiency of imperfect crystals from first principles", Energy & Environmental Science, 2020](https://pubs.rsc.org/en/content/articlelanding/2020/ee/d0ee00291g).
+* [SC-Fermi](https://github.com/jbuckeridge/sc-fermi) / [py-SC-Fermi](https://github.com/bjmorgan/py-sc-fermi) - equilibrium self-consistent Fermi level in Fortran / Python 
 
-## [aTLC](atlc)
+* [Wannier90](http://www.wannier.org) - allows calculation of optical absorption with dense k-point sampling
 
-The original TLC implementation assumed the Shockley–Queisser limit for radiative processes (i.e. above the band gap, all photons are fully absorbed). Here we use a frequency-dependent optical absorption coefficient to calculate the thickness-dependent direct absorption and electron-hole recombination. This approach results in a more realistic estimate of the short-circuit current and device performance limits. The original TLC behaviour is obtained by setting `l_sq=true`. The folder contains a worked example for Cu<sub>2</sub>ZnSnS<sub>4</sub>  in the Jupyter Notebook `aTLC.ipynb`.
+## Used in
 
-The method has been reported in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells", 2021](https://aip.scitation.org/doi/10.1063/5.0049143).
+* The original method is reported in ["Upper limit to the photovoltaic efficiency of imperfect crystals from first principles"](https://pubs.rsc.org/en/content/articlelanding/2020/ee/d0ee00291g)
 
-## [Wannier90 Absorption](wannier90-absorption)
+* An update to include the optical absorption spectrum in ["Ab initio calculation of the detailed balance limit to the photovoltaic efficiency of single p-n junction kesterite solar cells"](https://aip.scitation.org/doi/10.1063/5.0049143)
 
-This code calculates the optical absorption function based on the output of [Wannier90](http://www.wannier.org). The advantage of this procedure is that dense k-point sampling is possible. This approach can provide convergence in the optical properties that is not always possible using standard methods. The output is used as part of [aTLC](atlc). The folder contains a script `wannier_alpha.py` and a set of reference data for Cu<sub>2</sub>ZnSnSe<sub>4</sub> that has been output from Wannier90.  
+* Application to CdTe in ["Rapid recombination by cadmium vacancies in CdTe"](https://pubs.acs.org/doi/10.1021/acsenergylett.1c00380)
 
-### Dependencies 
+* Application to Sb<sub>2</sub>Se<sub>3</sub> in ["Upper efficiency limit of Sb<sub>2</sub>Se<sub>3</sub> solar cells"](https://arxiv.org/abs/2402.04434)
 
-In addition to standard python libraries (`pip install pandas numpy matplotlib scipy pickle seaborn copy re subprocess`), the codes rely on output from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) and [SC-Fermi](https://github.com/jbuckeridge/sc-fermi). We acknowledge that `SQlimit.py` is adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is taken from https://www.nrel.gov/grid/solar-resource/spectra.html. 
-
-### Development
+## Development
 
 The project is hosted on [Github](https://github.com/WMD-group/traplimitedconversion). Please use the [issue tracker](https://github.com/WMD-group/carriercapture/issues/) for feature requests, bug reports, and more general questions. If you would like to contribute, please do so via a pull request.
-
