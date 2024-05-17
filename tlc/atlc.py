@@ -38,42 +38,56 @@ AM15flux = AM15 / (Es*eV)  # number of photon m^-2 eV^-1 s^-1
 
 
 class Trap():
-    def __init__(self, D, E_t, N_t, q1, q2, C_p, C_n):
+    def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, C_p1, C_p2, C_n1, C_n2):
         self.D = D
-        self.E_t = E_t
+        self.E_t1 = E_t1
+        self.E_t2 = E_t2
         self.N_t = N_t
         self.q1 = q1
         self.q2 = q2
+        self.q3 = q3
         # capture coeff (avoiding div by 0)
-        self.C_p = C_p if C_p > 0 else 1E-100
-        self.C_n = C_n if C_n > 0 else 1E-100
-        self.name = "${{{}}} ({}/{})$".format(D, q1, q2)
+       self.C_p1 = C_p1 if C_p1 > 0 else 1E-100
+       self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
+       self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
+       self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
+       self.name = "${{{}}} ({}/{}/{})$".format(D, q1, q2, q3) 
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
-        n1 = N_n*np.exp(-(e_gap-self.E_t)/kb/temp)
-        p1 = N_p*np.exp(-self.E_t/kb/temp)
         n = n0 + delta_n
         p = p0 + delta_n
 
-        R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n) + (n+n1)/(self.N_t*self.C_p))
+       if self.q3 ==00:
+           n1 = N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
+           p1 = N_p*np.exp(-self.E_t1/kb/temp)
+
+           R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n1) + (n+n1)/(self.N_t*self.C_p1))
+
+       else:
+           P1=p*self.C_p1+1/2*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
+           P2=p*self.C_p2+2*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb/temp)
+           N1=n*self.C_n1+2*self.C_p1*N_p*np.exp(-self.E_t1/kb/temp)
+           N2=n*self.C_n2+1/2*self.C_p2*N_p*np.exp(-self.E_t2/kb/temp)
+
+           R = (n*p - n0*p0)*((self.C_n1*self.C_p1*P2+self.C_n2*self.C_p2*N1)/(N1*P2+P1*P2+N1*N2))*self.N_t
 
         return R
 
     def __repr__(self):
-        repr = "{}    ({}/{})  {:.2E}  {}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.N_t, self.E_t, self.C_n, self.C_p)
+        repr = "{}    ({}/{}/{})   {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
+                                                                  self.q1, self.q2, self.q3, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
         return repr
 
     def __str__(self):
-        repr = "{}    ({}/{})  {:.2E}  {}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.N_t, self.E_t, self.C_n, self.C_p)
+        repr = "{}    ({}/{}/{})   {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
+                                                                  self.q1, self.q2, self.q3, self.N_t, self.E_t, elf.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
         return repr
 
 
 class tlc(object):
     ALPHA_FILE = "alpha.csv"
     SCFERMI_FILE = "input-fermi.dat"
-    TRAP_FILE = "input-fermi.dat"
+    TRAP_FILE = "trap.dat"
 
     def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000, intensity=1.0, l_sq=False):
         """
@@ -259,16 +273,15 @@ class tlc(object):
         """
         run_scfermi_all(self.scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen)
 
-    def _read_traps(self, file='trap.dat'):
+    def _read_traps(self):
         trap_list = []
-        df_trap = pd.read_csv(file, comment='#', sep=r'\s+', usecols=range(6))
+        df_trap = pd.read_csv(tlc.TRAP_FILE, comment='#', sep=r'\s+', usecols=range(10))
 
         for index, data in df_trap.iterrows():
-            D, E_t, C_p, C_n = data.D, data.level, data.C_p, data.C_n
-            q1, q2 = data.q1, data.q2
-            N_t = 0
-
-            trap_list.append(Trap(D, E_t, N_t, q1, q2, C_p, C_n))
+           D, E_t1, E_t2, C_p1, C_p2, C_n1, C_n2 = data.D, data.level1, data.level2, data.C_p1, data.C_p2, data.C_n1, data.C_n2
+           q1, q2, q3 = data.q1, data.q2, data.q3
+           N_t = 0
+           trap_list.append(Trap(D, E_t1, E_t2, N_t, q1, q2, q3, C_p1, C_p2, C_n1, C_n2))
 
         self.trap_list = trap_list
 
@@ -311,7 +324,7 @@ class tlc(object):
                 defect for defect in scfermi.defects if defect.name == trap.D)
             trap.N_t = 0
             for cs in defect.chg_states:
-                if cs.q in (trap.q1, trap.q2):
+                if cs.q in (trap.q1, trap.q2, trap.q3):
                     trap.N_t += cs.concnt
         R = np.sum([trap.rate(n0, p0, delta_n, N_n, N_p, scfermi.e_gap, scfermi.T)
                     for trap in self.trap_list])
