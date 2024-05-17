@@ -228,7 +228,7 @@ class Scfermi:
     #         result = subprocess.run(['frozen-sc-fermi > output-frozen.log'],
     #                                 shell=True, stdout=subprocess.PIPE)
 
-    def _run(self, T=None, mode=None, dopants=[]):
+    def _run(self, T=None, mode=None, dopants=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
         # built-in sc-fermi run
         def _get_carrier_concnt(energy, dos, fermi_level, T):
             vb_idx = np.where(energy < self.e_gap / 2.)
@@ -284,11 +284,11 @@ class Scfermi:
         self.n_defect = len(self.defects)
 
         # read structure for volume
-        structure = Structure.from_file("POSCAR")
+        structure = Structure.from_file(poscar_path)
         vol = structure.volume * 1E-24  # AA-3 to cm-3
 
         # read dos
-        dos = np.loadtxt("totdos.dat", skiprows=1)
+        dos = np.loadtxt(totdos_path, skiprows=1)
         energy = dos[:, 0]
         dos = dos[:, 1]
 
@@ -440,7 +440,7 @@ def main_interpolate(path_i, path_f, file, Tfrozen=300, Tanneal=853, n_points=20
     print("done")
 
 
-def main(paths, file, Tfrozen=300, Tanneal=853, n_points=20, dopants_anneal=[]):
+def main(paths, file, Tfrozen=300, Tanneal=853, n_points=20, dopants_anneal=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
     def _read_scfermi_input_all(path="./"):
         scfermi_list = []
         # find input_file
