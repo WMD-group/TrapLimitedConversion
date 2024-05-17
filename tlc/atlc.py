@@ -89,7 +89,7 @@ class tlc(object):
     SCFERMI_FILE = "input-fermi.dat"
     TRAP_FILE = "trap.dat"
 
-    def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000, intensity=1.0, l_sq=False):
+    def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000, intensity=1.0, l_sq=False, poscar_path="POSCAR", totdos_path="totdos.dat"):
         """
         E_gap: band gap in eV
         T: temperature in K
@@ -114,6 +114,8 @@ class tlc(object):
         self.intensity = intensity
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
+        self.poscar_path = poscar_path
+        self.totdos_path = totdos_path
         self.l_sq = l_sq
         if not l_sq:
             self._calc_absorptivity()
@@ -150,7 +152,7 @@ class tlc(object):
 
     def calculate_SRH(self):
         self._get_scfermi(tlc.SCFERMI_FILE)
-        self._run_scfermi(self.Tanneal, self.T)
+        self._run_scfermi(self.Tanneal, self.T, self.poscar_path, self.totdos_path)
         self._read_traps()
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
@@ -265,13 +267,13 @@ class tlc(object):
         """
         self.scfermi = Scfermi.from_file(file_efrom)
 
-    def _run_scfermi(self, Tanneal, Tfrozen):
+    def _run_scfermi(self, Tanneal, Tfrozen, poscar_path, totdos_path):
         """
         run scfermi 
         1. calculate equilibrium concentrations of defects at Tanneal
         2. calcualte charge states of defects and carrier concentrations at Tfrozen
         """
-        run_scfermi_all(self.scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen)
+        run_scfermi_all(self.scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen, poscar_path=poscar_path, totdos_path=totdos_path)
 
     def _read_traps(self):
         trap_list = []

@@ -309,12 +309,12 @@ class Scfermi:
             'excess_charge: ', "{:.8E}".format(self.excess_charge))
 
 
-def run_scfermi_all(scfermi, Tanneal=853, Tfrozen=300, builtin_run=True, dopants_anneal=[]):
+def run_scfermi_all(scfermi, Tanneal=853, Tfrozen=300, builtin_run=True, dopants_anneal=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
     """ 
     run sc-fermi and frozen-sc-fermi subsequently
     """
     # if builtin_run:
-    scfermi._run(T=Tanneal, dopants=dopants_anneal)
+    scfermi._run(T=Tanneal, dopants=dopants_anneal, poscar_path=poscar_path, totdos_path=totdos_path)
     scfermi.defects = scfermi.defects[:len(
         scfermi.defects)-len(dopants_anneal)]
     scfermi.n_defect = len(scfermi.defects)
@@ -325,7 +325,7 @@ def run_scfermi_all(scfermi, Tanneal=853, Tfrozen=300, builtin_run=True, dopants
     if scfermi.verbose: print("fermi_level (anneal):", scfermi.fermi_level)
 
     # if builtin_run:
-    scfermi._run(T=Tfrozen, mode='frozen')
+    scfermi._run(T=Tfrozen, mode='frozen', poscar_path=poscar_path, totdos_path=totdos_path)
     # else:
         # scfermi.write_frozen_input_file(
         #     T=Tfrozen, path="input-fermi-frozen.dat")
