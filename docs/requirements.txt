@@ -4,8 +4,6 @@ pandas
 numpy 
 matplotlib 
 scipy  
-seaborn  
-re 
-subprocess
+seaborn 
 pytest>=7.1.3
 pytest-mpl
