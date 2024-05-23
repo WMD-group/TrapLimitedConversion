@@ -1,8 +1,7 @@
 pandas 
 numpy 
 matplotlib 
-scipy 
-pickle 
+scipy  
 seaborn 
 copy 
 re 
