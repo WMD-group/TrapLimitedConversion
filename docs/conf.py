@@ -42,6 +42,7 @@ extensions = [
     'sphinx_click',
     'sphinx_design',
     'myst_nb',  # for jupyter notebooks
+    'nbsphinx',
 ]
 
 # Make sure the target is unique
