@@ -6,6 +6,8 @@
 
 Tools for calculating the solar energy conversion limits of inorganic crystals. The approach relies on defect-mediated non-radiative recombination values calculated from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) or similar packages such as [NonRad](https://github.com/mturiansky/nonrad).
 
+Tutorials can be found on the [docs](https://traplimitedconversion.readthedocs.io/en/latest/index.html) site.
+
 We acknowledge that some code related to radiative detailed balance was adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is from [NREL](https://www.nrel.gov/grid/solar-resource/spectra.html). 
 
 ## Related Packages
