@@ -1,9 +1,10 @@
+sphinx
+sphinx-rtd-theme
 pandas 
 numpy 
 matplotlib 
 scipy  
-seaborn 
-copy 
+seaborn  
 re 
 subprocess
 pytest>=7.1.3
