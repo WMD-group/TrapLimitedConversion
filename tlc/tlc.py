@@ -22,7 +22,7 @@ eV = 1.6021766208e-19  # joule        , eV to joule
 q = 1.6021766208e-19   # C             , elemental charge
 
 # http://rredc.nrel.gov/solar/spectra/am1.5/
-ref_solar = pd.read_csv("data/ASTMG173.csv", header=1)  # nm vs W m^-2 nm^-1
+ref_solar = pd.read_csv("../data/ASTMG173.csv", header=1)  # nm vs W m^-2 nm^-1
 # data range: 280nm to 4000nm, 0.31eV to 4.42857 eV
 # WL (nm), W*m-2*nm-1
 WL, solar_per_nm = ref_solar.iloc[:, 0], ref_solar.iloc[:, 2]
@@ -47,23 +47,23 @@ class Trap():
         self.q2 = q2
         self.q3 = q3
         # capture coeff (avoiding div by 0)
-       self.C_p1 = C_p1 if C_p1 > 0 else 1E-100
-       self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
-       self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
-       self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
-       self.name = "${{{}}} ({}/{}/{})$".format(D, q1, q2, q3) 
+        self.C_p1 = C_p1 if C_p1 > 0 else 1E-100
+        self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
+        self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
+        self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
+        self.name = "${{{}}} ({}/{}/{})$".format(D, q1, q2, q3) 
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
         n = n0 + delta_n
         p = p0 + delta_n
 
-       if self.q3 ==00:
+        if self.q3 ==00:
            n1 = N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
            p1 = N_p*np.exp(-self.E_t1/kb/temp)
 
            R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n1) + (n+n1)/(self.N_t*self.C_p1))
 
-       else:
+        else:
            P1=p*self.C_p1+1/2*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
            P2=p*self.C_p2+2*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb/temp)
            N1=n*self.C_n1+2*self.C_p1*N_p*np.exp(-self.E_t1/kb/temp)
