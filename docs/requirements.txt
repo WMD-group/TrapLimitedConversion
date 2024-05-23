@@ -4,6 +4,7 @@ recommonmark
 sphinx_click
 sphinx_design
 renku-sphinx-theme
+myst_nb
 
 # required dependencies:
 pandas 
