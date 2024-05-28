@@ -135,21 +135,20 @@ class tlc(object):
         """
         if self.l_sq:
             s = "Shockley-Queisser limit (SQ limit)\n"
-     #   else:
-     #      s = "Trap limited conversion efficiency (TLC)\n"
-      #  s += "T: {:.1f} K\n".format(self.T)
-     #   s += "E_gap: {:.1f} eV\n".format(self.E_gap)
-      #  s += "Thickness: {:.1f} nm".format(self.thickness)
+        else:
+           s = "Trap limited conversion efficiency (TLC)\n"
+        s += "T: {:.1f} K\n".format(self.T)
+        s += "E_gap: {:.1f} eV\n".format(self.E_gap)
+        s += "Thickness: {:.1f} nm".format(self.thickness)
         if self.l_calc:
-      #      s += "\n===\n"
-     #      s += "J_sc: {:.3f} mA/cm^2\n".format(self.j_sc)
-      #      s += "J0_rad: {:.3g} mA/cm^2\n".format(self.j0_rad)
-      #      s += "V_oc: {:.3f} V\n".format(self.v_oc)
-      #      s += "V_max, J_max: {:.3f} V, {:.3f} mA/cm^2\n".format(
-      #          self.v_max, self.j_max)
-       #     s += "FF: {:.3f}%\n".format(self.ff*100)
-       #     s += "Efficiency: {:.3f}%".format(self.efficiency*100)
-            s = " {:.3f}".format(self.efficiency*100)
+            s += "\n===\n"
+            s += "J_sc: {:.3f} mA/cm^2\n".format(self.j_sc)
+            s += "J0_rad: {:.3g} mA/cm^2\n".format(self.j0_rad)
+            s += "V_oc: {:.3f} V\n".format(self.v_oc)
+            s += "V_max, J_max: {:.3f} V, {:.3f} mA/cm^2\n".format(
+                self.v_max, self.j_max)
+            s += "FF: {:.3f}%\n".format(self.ff*100)
+            s += "Efficiency: {:.3f}%".format(self.efficiency*100)
         return s
 
     def calculate_SRH(self):
