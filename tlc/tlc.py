@@ -38,7 +38,7 @@ AM15flux = AM15 / (Es*eV)  # number of photon m^-2 eV^-1 s^-1
 
 
 class Trap():
-    def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, C_p1, C_p2, C_n1, C_n2):
+    def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
         self.D = D
         self.E_t1 = E_t1
         self.E_t2 = E_t2
@@ -46,6 +46,7 @@ class Trap():
         self.q1 = q1
         self.q2 = q2
         self.q3 = q3
+        self.g = g
         # capture coeff (avoiding div by 0)
         self.C_p1 = C_p1 if C_p1 > 0 else 1E-100
         self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
@@ -64,23 +65,23 @@ class Trap():
            R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n1) + (n+n1)/(self.N_t*self.C_p1))
 
         else:
-           P1=p*self.C_p1+1/2*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
-           P2=p*self.C_p2+2*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb/temp)
-           N1=n*self.C_n1+2*self.C_p1*N_p*np.exp(-self.E_t1/kb/temp)
-           N2=n*self.C_n2+1/2*self.C_p2*N_p*np.exp(-self.E_t2/kb/temp)
+           P1=p*self.C_p1+1/self.g*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
+           P2=p*self.C_p2+self.g*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb/temp)
+           N1=n*self.C_n1+self.g*self.C_p1*N_p*np.exp(-self.E_t1/kb/temp)
+           N2=n*self.C_n2+1/self.g*self.C_p2*N_p*np.exp(-self.E_t2/kb/temp)
 
            R = (n*p - n0*p0)*((self.C_n1*self.C_p1*P2+self.C_n2*self.C_p2*N1)/(N1*P2+P1*P2+N1*N2))*self.N_t
 
         return R
 
     def __repr__(self):
-        repr = "{}    ({}/{}/{})   {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
+                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
         return repr
 
     def __str__(self):
-        repr = "{}    ({}/{}/{})   {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.N_t, self.E_t, elf.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
+                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t, elf.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
         return repr
 
 
@@ -134,20 +135,21 @@ class tlc(object):
         """
         if self.l_sq:
             s = "Shockley-Queisser limit (SQ limit)\n"
-        else:
-            s = "Trap limited conversion efficiency (TLC)\n"
-        s += "T: {:.1f} K\n".format(self.T)
-        s += "E_gap: {:.1f} eV\n".format(self.E_gap)
-        s += "Thickness: {:.1f} nm".format(self.thickness)
+     #   else:
+     #      s = "Trap limited conversion efficiency (TLC)\n"
+      #  s += "T: {:.1f} K\n".format(self.T)
+     #   s += "E_gap: {:.1f} eV\n".format(self.E_gap)
+      #  s += "Thickness: {:.1f} nm".format(self.thickness)
         if self.l_calc:
-            s += "\n===\n"
-            s += "J_sc: {:.3f} mA/cm^2\n".format(self.j_sc)
-            s += "J0_rad: {:.3g} mA/cm^2\n".format(self.j0_rad)
-            s += "V_oc: {:.3f} V\n".format(self.v_oc)
-            s += "V_max, J_max: {:.3f} V, {:.3f} mA/cm^2\n".format(
-                self.v_max, self.j_max)
-            s += "FF: {:.3f}%\n".format(self.ff*100)
-            s += "Efficiency: {:.3f}%".format(self.efficiency*100)
+      #      s += "\n===\n"
+     #      s += "J_sc: {:.3f} mA/cm^2\n".format(self.j_sc)
+      #      s += "J0_rad: {:.3g} mA/cm^2\n".format(self.j0_rad)
+      #      s += "V_oc: {:.3f} V\n".format(self.v_oc)
+      #      s += "V_max, J_max: {:.3f} V, {:.3f} mA/cm^2\n".format(
+      #          self.v_max, self.j_max)
+       #     s += "FF: {:.3f}%\n".format(self.ff*100)
+       #     s += "Efficiency: {:.3f}%".format(self.efficiency*100)
+            s = " {:.3f}".format(self.efficiency*100)
         return s
 
     def calculate_SRH(self):
@@ -277,13 +279,13 @@ class tlc(object):
 
     def _read_traps(self):
         trap_list = []
-        df_trap = pd.read_csv(tlc.TRAP_FILE, comment='#', sep=r'\s+', usecols=range(10))
+        df_trap = pd.read_csv(tlc.TRAP_FILE, comment='#', sep=r'\s+', usecols=range(11))
 
         for index, data in df_trap.iterrows():
-           D, E_t1, E_t2, C_p1, C_p2, C_n1, C_n2 = data.D, data.level1, data.level2, data.C_p1, data.C_p2, data.C_n1, data.C_n2
+           D, E_t1, E_t2, g, C_p1, C_p2, C_n1, C_n2 = data.D, data.level1, data.level2, data.g, data.C_p1, data.C_p2, data.C_n1, data.C_n2
            q1, q2, q3 = data.q1, data.q2, data.q3
            N_t = 0
-           trap_list.append(Trap(D, E_t1, E_t2, N_t, q1, q2, q3, C_p1, C_p2, C_n1, C_n2))
+           trap_list.append(Trap(D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2))
 
         self.trap_list = trap_list
 
