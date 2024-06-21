@@ -12,6 +12,7 @@ import pickle
 from pymatgen.core.structure import Structure
 import matplotlib.pyplot as plt
 from scipy.optimize import brentq
+from scipy.special import expit
 kB = 8.6173303E-5   # eV K-1
 
 
@@ -231,13 +232,10 @@ class Scfermi:
     def _run(self, T=None, mode=None, dopants=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
         # built-in sc-fermi run
         def _get_carrier_concnt(energy, dos, fermi_level, T):
-            vb_idx = np.where(energy < self.e_gap / 2.)
             vb_idx = np.where(energy <= 0)
-            cb_idx = np.where(energy > self.e_gap / 2.)
             cb_idx = np.where(energy >= self.e_gap)
 
             del_E = (energy[1] - energy[0])
-            del_E = (energy[-1] - energy[0])/len(energy)
 
             # normalize
             tot_elect = np.sum(dos[vb_idx]) * del_E
@@ -246,10 +244,9 @@ class Scfermi:
 
             # Fermi-Dirac distribution
             kbT = T * kB
-            fd_occ = 1. / (np.exp((energy-fermi_level)/kbT)+1)
-            p = np.sum((dos_*del_E)[vb_idx]) - \
-                np.sum((dos_*fd_occ*del_E)[vb_idx])
-            p = np.sum((dos_*del_E*(1-fd_occ))[vb_idx])
+            fd_occ = expit((fermi_level - energy) / kbT)
+            fd_occ_p = expit((energy - fermi_level) / kbT)
+            p = np.sum((dos_*del_E*fd_occ_p)[vb_idx])
             n = np.sum((dos_*fd_occ*del_E)[cb_idx])
             return n, p
 
