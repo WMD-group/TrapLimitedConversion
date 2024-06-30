@@ -138,7 +138,7 @@ class tlc(object):
         else:
            s = "Trap limited conversion efficiency (TLC)\n"
         s += "T: {:.1f} K\n".format(self.T)
-        s += "E_gap: {:.1f} eV\n".format(self.E_gap)
+        s += "E_gap: {:.2f} eV\n".format(self.E_gap)
         s += "Thickness: {:.1f} nm".format(self.thickness)
         if self.l_calc:
             s += "\n===\n"
