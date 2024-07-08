@@ -52,6 +52,8 @@ Es = np.arange(0.32, 4.401, 0.002)  # equally-spaced energy spectrum for solar i
 AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # AM15 (standard) solar irradiance in W m^-2 eV^-1
 AM15flux = AM15 / (Es*spcp.eV)  # AM15 solar flux; number of incident photons in m^-2 eV^-1 s^-1
 
+# code to parse the AM1.5G spectrum from NREL into solar irradiance and flux has been tempated from
+# https://github.com/marcus-cmc/Shockley-Queisser-limit; C. Marcus Chuang 2016
 
 class Trap():
     def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
