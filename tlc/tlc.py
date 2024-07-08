@@ -130,7 +130,7 @@ class tlc(object):
         self.Tanneal = Tanneal
         self.E_gap = E_gap
         self.thickness = thickness
-        self.intensity = intensity
+        self.intensity = intensity  # TODO: Fully implement and remove not in docstring above
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
         self.poscar_path = poscar_path
@@ -139,7 +139,7 @@ class tlc(object):
         if not l_sq:
             self._calc_absorptivity()
         else:
-            self.absorptivity = np.heaviside(Es - self.E_gap, 1)
+            self.absorptivity = np.heaviside(Es - self.E_gap, 1)  # unit-less
             self.alpha = pd.DataFrame(
                 {"E": Es, "alpha": np.heaviside(Es - self.E_gap, 1) * 1E100})
         self.scfermi = None
@@ -189,14 +189,15 @@ class tlc(object):
         self.calculate_rad()
 
     def __cal_J_sc(self):
-        fluxcumm = cumtrapz(
-            self.absorptivity[::-1] * AM15flux[::-1], self.Es[::-1], initial=0)
-        # fluxcumm = cumtrapz(AM15flux[::-1], self.Es[::-1], initial=0)
-        # TODO: no E_gap
-        fluxaboveE = fluxcumm[::-1] * -1 * self.intensity
-        flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)
-        #
-        J_sc = flux_absorbed * scpc.e * 0.1  # mA/cm^2  (0.1: from A/m2 to mA/cm2)
+        fluxcumm = cumtrapz(  # unit-less times m^-2 eV^-1 s^-1, integrated over energy -> m^-2 s^-1
+            self.absorptivity[::-1] * AM15flux[::-1], self.Es[::-1], initial=0)  # cumulative integrand
+        
+        # TODO: no E_gap (should be independent of E_gap; no absorption below E_gap)
+        fluxaboveE = (fluxcumm[::-1]  * -1  # invert spectrum
+                      * self.intensity)  # intensity = 1 for 1 Sun; 100 mW/cm^2
+        flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)  # above-gap photon flux in m^-2 s^-1
+        # Below; J_sc: m^-2 s^-1 * C -> (C/s)/m^-2 = A/m^2 = (1000 mA)/(100 cm)^2 = 0.1 mA/cm^-2; so * 0.1 converts final units to -> mA/cm^2
+        J_sc = flux_absorbed * scpc.e * 0.1 
         return J_sc
 
     def __cal_J0_rad(self):
@@ -207,14 +208,11 @@ class tlc(object):
         '''
         phi = 2 * np.pi * (((self.Es*spcp.eV)**2) * spcp.eV / ((spcp.h**3) * (spcp.c**2)) / (
                            np.exp(self.Es*spcp.eV / (scpc.k*self.T)) - 1))
-
-        # fluxcumm = cumtrapz(phi[::-1], self.Es[::-1], initial=0)
         fluxcumm = cumtrapz(
             self.absorptivity[::-1] * phi[::-1], self.Es[::-1], initial=0)
-        # TODO: no E_gap
+        # TODO: no E_gap (should be independent of E_gap; no absorption below E_gap)
         fluxaboveE = fluxcumm[::-1] * -1
         flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)
-        #
         j0 = flux_absorbed * q * 0.1  # (0.1: from A/m2 to mA/cm2)
         return j0
 
