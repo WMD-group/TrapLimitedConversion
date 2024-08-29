@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-import scipy.interpolate
-import scipy.integrate
+import scipy.constants as scpc
 from scipy.integrate import cumtrapz, trapz
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar, minimize_scalar
@@ -11,31 +10,50 @@ import pandas as pd
 import sys
 from scfermi import Scfermi, run_scfermi_all
 
-# e = 1.60217662E-19 # elementary charge
-kb = 8.6173303e-5  # eV K-1, Boltzmann constant
-sun_power = 100.   # mW/cm2
+kb_in_eV_per_K = scpc.physical_constants["Boltzmann constant in eV/K"][0]  # 8.6173303e-5 eV K-1, Boltzmann constant
+sun_power = 100.   # AM1.5G standard irradiance in mW/cm^2; https://www.pveducation.org/pvcdrom/appendices/standard-solar-spectra
 
-k = 1.38064852e-23     # m^2 kg s^-2 K^-1, Boltzmann constant
-h = 6.62607004e-34     # m^2 kg s^-1    , planck constant
-c = 2.99792458e8       # m s^-1         , speed of light
-eV = 1.6021766208e-19  # joule        , eV to joule
-q = 1.6021766208e-19   # C             , elemental charge
+# for reference: (but use scipy.constants values for consistency and accuracy)
+# k = 1.38064852e-23     # m^2 kg s^-2 K^-1, Boltzmann constant
+# h = 6.62607004e-34     # m^2 kg s^-1    , planck constant
+# c = 2.99792458e8       # m s^-1         , speed of light
+# eV = 1.6021766208e-19  # joule        , eV to joule
+# e = 1.6021766208e-19   # C             , elemental charge
 
-# http://rredc.nrel.gov/solar/spectra/am1.5/
-ref_solar = pd.read_csv("../data/ASTMG173.csv", header=1)  # nm vs W m^-2 nm^-1
+ref_solar = pd.read_csv("../data/ASTMG173.csv", header=1)  # http://rredc.nrel.gov/solar/spectra/am1.5 ; Units: nm vs W m^-2 nm^-1
 # data range: 280nm to 4000nm, 0.31eV to 4.42857 eV
-# WL (nm), W*m-2*nm-1
-WL, solar_per_nm = ref_solar.iloc[:, 0], ref_solar.iloc[:, 2]
-E = 1240.0 / WL  # eV
-# jacobian transformation, W m^-2 eV^-1
-solar_per_E = solar_per_nm * (eV/1e-9) * h * c / (eV*E)**2
 
-Es = np.arange(0.32, 4.401, 0.002)
+# WL = 'wavelength' (nm), solar_per_nm = 'solar irradiance' per inverse nanometer (per energy); W m^-2 nm^-1: 
+WL, solar_per_nm = ref_solar.iloc[:, 0], ref_solar.iloc[:, 2]
+
+# convert nm to eV as energy units:
+def ev_to_or_from_nm(eV_or_nm: float):  
+    """
+    Converts energy in eV to wavelength in nm, or vice versa.
+    
+    Copied from https://github.com/SMTG-Bham/sumo/pull/134 from
+    @kavanase.
+
+    Args:
+        eV_or_nm (float):
+            Input wavelength (in nm) or energy (in eV).
+
+    Returns:
+        nm_or_eV (float):
+            Output energy (in eV) or wavelength (in nm).
+    """
+    return  1e9*(scpc.h*scpc.c) / (eV_or_nm*scpc.electron_volt)
+
+E = ev_to_or_from_nm(WL)  # eV
+solar_per_E = solar_per_nm * (spcp.eV/1e-9) * spcp.h * spcp.c / (spcp.eV*E)**2  # jacobian transformation, converts solar irradiance to: W m^-2 eV^-1
+Es = np.arange(0.32, 4.401, 0.002)  # equally-spaced energy spectrum for solar irradiance
 
 # linear interpolation to get an equally spaced spectrum
-AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # W m^-2 eV^-1
-AM15flux = AM15 / (Es*eV)  # number of photon m^-2 eV^-1 s^-1
+AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # AM15 (standard) solar irradiance in W m^-2 eV^-1
+AM15flux = AM15 / (Es*spcp.eV)  # AM15 solar flux; number of incident photons in m^-2 eV^-1 s^-1
 
+# code to parse the AM1.5G spectrum from NREL into solar irradiance and flux has been tempated from
+# https://github.com/marcus-cmc/Shockley-Queisser-limit; C. Marcus Chuang 2016
 
 class Trap():
     def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
@@ -59,16 +77,16 @@ class Trap():
         p = p0 + delta_n
 
         if self.q3 ==00:
-           n1 = N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
-           p1 = N_p*np.exp(-self.E_t1/kb/temp)
+           n1 = N_n*np.exp(-(e_gap-self.E_t1)/kb_in_eV_per_K/temp)
+           p1 = N_p*np.exp(-self.E_t1/kb_in_eV_per_K/temp)
 
            R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n1) + (n+n1)/(self.N_t*self.C_p1))
 
         else:
-           P1=p*self.C_p1+1/self.g*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb/temp)
-           P2=p*self.C_p2+self.g*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb/temp)
-           N1=n*self.C_n1+self.g*self.C_p1*N_p*np.exp(-self.E_t1/kb/temp)
-           N2=n*self.C_n2+1/self.g*self.C_p2*N_p*np.exp(-self.E_t2/kb/temp)
+           P1=p*self.C_p1+1/self.g*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb_in_eV_per_K/temp)
+           P2=p*self.C_p2+self.g*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb_in_eV_per_K/temp)
+           N1=n*self.C_n1+self.g*self.C_p1*N_p*np.exp(-self.E_t1/kb_in_eV_per_K/temp)
+           N2=n*self.C_n2+1/self.g*self.C_p2*N_p*np.exp(-self.E_t2/kb_in_eV_per_K/temp)
 
            R = (n*p - n0*p0)*((self.C_n1*self.C_p1*P2+self.C_n2*self.C_p2*N1)/(N1*P2+P1*P2+N1*N2))*self.N_t
 
@@ -179,7 +197,7 @@ class tlc(object):
                       * self.intensity)  # intensity = 1 for 1 Sun; 100 mW/cm^2
         flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)  # above-gap photon flux in m^-2 s^-1
         # Below; J_sc: m^-2 s^-1 * C -> (C/s)/m^-2 = A/m^2 = (1000 mA)/(100 cm)^2 = 0.1 mA/cm^-2; so * 0.1 converts final units to -> mA/cm^2
-        J_sc = flux_absorbed * q * 0.1  
+        J_sc = flux_absorbed * scpc.e * 0.1 
         return J_sc
 
     def __cal_J0_rad(self):
@@ -188,8 +206,8 @@ class tlc(object):
         J0 = q * (integrate(phi dE) from E to infinity)  / EQE_EL
         phi is the black body radiation at T (flux vs energy)
         '''
-        phi = 2 * np.pi * (((self.Es*eV)**2) * eV / ((h**3) * (c**2)) / (
-                           np.exp(self.Es*eV / (k*self.T)) - 1))
+        phi = 2 * np.pi * (((self.Es*spcp.eV)**2) * spcp.eV / ((spcp.h**3) * (spcp.c**2)) / (
+                           np.exp(self.Es*spcp.eV / (scpc.k*self.T)) - 1))
         fluxcumm = cumtrapz(
             self.absorptivity[::-1] * phi[::-1], self.Es[::-1], initial=0)
         # TODO: no E_gap (should be independent of E_gap; no absorption below E_gap)
@@ -204,10 +222,10 @@ class tlc(object):
         """
         j_sc, j0_rad = self.j_sc, self.j0_rad
 
-        j = -1.0 * j_sc + j0_rad * (np.exp(q*Vs / (k*self.T)) - 1)
+        j = -1.0 * j_sc + j0_rad * (np.exp(scpc.e*Vs / (scpc.k*self.T)) - 1)
         # nonraditive recombination
         if self.R_SRH is not None:
-            j += q * self.R_SRH / 1E-3 * self.thickness * 1E-7
+            j += scpc.e * self.R_SRH / 1E-3 * self.thickness * 1E-7
 
         jv = pd.DataFrame({"V": Vs, "J": j})
         return jv
@@ -222,8 +240,8 @@ class tlc(object):
 
     def __find_max_point(self):
         """ 
-        Calculate aren return the voltage that produces
-        the maximum power
+        Calculate and return the voltage that produces
+        the maximum power.
         """
         power = self.jv.J * self.jv.V
         def f(v): return interp1d(self.jv.V, power)(v)
@@ -244,8 +262,7 @@ class tlc(object):
         ff = self.v_max * self.j_max / self.v_oc / self.j_sc
         return ff
 
-    # absorptivity
-    #
+    # absorptivity functions:
     def __read_alpha(self):
         alpha = pd.read_csv(tlc.ALPHA_FILE)
         # alpha.plot(x='E', y='alpha')
@@ -253,13 +270,12 @@ class tlc(object):
 
     def _calc_absorptivity(self):
         self.__read_alpha()
-        absorptivity = 1 - \
-            np.exp(-2 * self.alpha.alpha * self.thickness * 1E-7)  # nm -> cm
-        self.absorptivity = np.interp(
-            Es, self.alpha.E, absorptivity)  # W m^-2 eV^-1
+        absorptivity = 1 - np.exp(
+            -2 * self.alpha.alpha * self.thickness * 1e-7  # 1e-7 converts thickness in nm -> cm
+        )  # then thickness in cm times absorption in cm^-1 -> unit-less
+        self.absorptivity = np.interp(Es, self.alpha.E, absorptivity)  # unit-less
 
-    # nonradiative recombination
-    #
+    # nonradiative recombination:
     def _get_scfermi(self, file_efrom):
         """
         read formation energies of defects, POSCAR, totdos
@@ -290,13 +306,13 @@ class tlc(object):
         scfermi = self.scfermi
 
         def calc_DOS_eff(carrier_concnt, e_f, temp):
-            return carrier_concnt/np.exp(-e_f/(kb*temp))
+            return carrier_concnt/np.exp(-e_f/(kb_in_eV_per_K*temp))
 
         n0 = scfermi.n
         p0 = scfermi.p
         e_gap = scfermi.e_gap
         temp = scfermi.T
-        Vc = kb*temp
+        Vc = kb_in_eV_per_K*temp
 
         N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
         N_n = calc_DOS_eff(n0, e_gap - scfermi.fermi_level, scfermi.T)
