@@ -1,13 +1,15 @@
 #!/usr/bin/python
 
+import os
 import numpy as np
-import scipy.constants as scpc
-from scipy.integrate import cumtrapz, trapz
-from scipy.interpolate import interp1d
-from scipy.optimize import root_scalar, minimize_scalar
 import matplotlib.pyplot as plt
 import pandas as pd
-import sys
+
+import scipy.constants as scpc
+from scipy.integrate import cumtrapz
+from scipy.interpolate import interp1d
+from scipy.optimize import root_scalar, minimize_scalar
+
 from scfermi import Scfermi, run_scfermi_all
 
 kb_in_eV_per_K = scpc.physical_constants["Boltzmann constant in eV/K"][0]  # 8.6173303e-5 eV K-1, Boltzmann constant
@@ -20,7 +22,9 @@ sun_power = 100.   # AM1.5G standard irradiance in mW/cm^2; https://www.pveducat
 # eV = 1.6021766208e-19  # joule        , eV to joule
 # e = 1.6021766208e-19   # C             , elemental charge
 
-ref_solar = pd.read_csv("../data/ASTMG173.csv", header=1)  # http://rredc.nrel.gov/solar/spectra/am1.5 ; Units: nm vs W m^-2 nm^-1
+MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+ref_solar = pd.read_csv(os.path.join(MODULE_DIR, "../data/ASTMG173.csv"), header=1)  #
+# http://rredc.nrel.gov/solar/spectra/am1.5 ; Units: nm vs W m^-2 nm^-1
 # data range: 280nm to 4000nm, 0.31eV to 4.42857 eV
 
 # WL = 'wavelength' (nm), solar_per_nm = 'solar irradiance' per inverse nanometer (per energy); W m^-2 nm^-1: 
@@ -45,12 +49,12 @@ def ev_to_or_from_nm(eV_or_nm: float):
     return  1e9*(scpc.h*scpc.c) / (eV_or_nm*scpc.electron_volt)
 
 E = ev_to_or_from_nm(WL)  # eV
-solar_per_E = solar_per_nm * (spcp.eV/1e-9) * spcp.h * spcp.c / (spcp.eV*E)**2  # jacobian transformation, converts solar irradiance to: W m^-2 eV^-1
+solar_per_E = solar_per_nm * (scpc.eV/1e-9) * scpc.h * scpc.c / (scpc.eV*E)**2  # jacobian transformation, converts solar irradiance to: W m^-2 eV^-1
 Es = np.arange(0.32, 4.401, 0.002)  # equally-spaced energy spectrum for solar irradiance
 
 # linear interpolation to get an equally spaced spectrum
 AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # AM15 (standard) solar irradiance in W m^-2 eV^-1
-AM15flux = AM15 / (Es*spcp.eV)  # AM15 solar flux; number of incident photons in m^-2 eV^-1 s^-1
+AM15flux = AM15 / (Es*scpc.eV)  # AM15 solar flux; number of incident photons in m^-2 eV^-1 s^-1
 
 # code to parse the AM1.5G spectrum from NREL into solar irradiance and flux has been tempated from
 # https://github.com/marcus-cmc/Shockley-Queisser-limit; C. Marcus Chuang 2016
@@ -206,14 +210,14 @@ class tlc(object):
         J0 = q * (integrate(phi dE) from E to infinity)  / EQE_EL
         phi is the black body radiation at T (flux vs energy)
         '''
-        phi = 2 * np.pi * (((self.Es*spcp.eV)**2) * spcp.eV / ((spcp.h**3) * (spcp.c**2)) / (
-                           np.exp(self.Es*spcp.eV / (scpc.k*self.T)) - 1))
+        phi = 2 * np.pi * (((self.Es*scpc.eV)**2) * scpc.eV / ((scpc.h**3) * (scpc.c**2)) / (
+                           np.exp(self.Es*scpc.eV / (scpc.k*self.T)) - 1))
         fluxcumm = cumtrapz(
             self.absorptivity[::-1] * phi[::-1], self.Es[::-1], initial=0)
         # TODO: no E_gap (should be independent of E_gap; no absorption below E_gap)
         fluxaboveE = fluxcumm[::-1] * -1
         flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)
-        j0 = flux_absorbed * q * 0.1  # (0.1: from A/m2 to mA/cm2)
+        j0 = flux_absorbed * scpc.e * 0.1  # (0.1: from A/m2 to mA/cm2)
         return j0
 
     def __cal_jv(self, Vs):
