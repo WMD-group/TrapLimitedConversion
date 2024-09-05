@@ -343,13 +343,17 @@ class tlc(object):
         for trap in self.trap_list:
             defect = next(
                 defect for defect in scfermi.defects if defect.name == trap.D)
-            trap.N_t = 0
-            for cs in defect.chg_states:
-                if cs.q in (trap.q1, trap.q2, trap.q3):
-                    trap.N_t += cs.concnt
-        R = np.sum([trap.rate(n0, p0, delta_n, N_n, N_p, scfermi.e_gap, scfermi.T)
-                    for trap in self.trap_list])
-        return R
+            trap.N_t = sum(
+                cs.concnt
+                for cs in defect.chg_states
+                if cs.q in (trap.q1, trap.q2, trap.q3)
+            )
+        return np.sum(  # R_SRH
+            [
+                trap.rate(n0, p0, delta_n, N_n, N_p, scfermi.e_gap, scfermi.T)
+                for trap in self.trap_list
+            ]
+        )
 
     def __get_R_SRH(self, Vs):
         Rs = np.array([self.__cal_R_SRH(V) for V in Vs])
