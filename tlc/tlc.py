@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import numpy as np
 import scipy.interpolate
 import scipy.integrate
@@ -11,31 +9,32 @@ import pandas as pd
 import sys
 from scfermi import Scfermi, run_scfermi_all
 
+# Constants
 # e = 1.60217662E-19 # elementary charge
 kb = 8.6173303e-5  # eV K-1, Boltzmann constant
 sun_power = 100.   # mW/cm2
-
 k = 1.38064852e-23     # m^2 kg s^-2 K^-1, Boltzmann constant
 h = 6.62607004e-34     # m^2 kg s^-1    , planck constant
 c = 2.99792458e8       # m s^-1         , speed of light
 eV = 1.6021766208e-19  # joule        , eV to joule
 q = 1.6021766208e-19   # C             , elemental charge
 
-# http://rredc.nrel.gov/solar/spectra/am1.5/
+# Solar spectrum
+# Source: http://rredc.nrel.gov/solar/spectra/am1.5/
+
 ref_solar = pd.read_csv("../data/ASTMG173.csv", header=1)  # nm vs W m^-2 nm^-1
 # data range: 280nm to 4000nm, 0.31eV to 4.42857 eV
 # WL (nm), W*m-2*nm-1
 WL, solar_per_nm = ref_solar.iloc[:, 0], ref_solar.iloc[:, 2]
 E = 1240.0 / WL  # eV
+
 # jacobian transformation, W m^-2 eV^-1
 solar_per_E = solar_per_nm * (eV/1e-9) * h * c / (eV*E)**2
-
 Es = np.arange(0.32, 4.401, 0.002)
 
 # linear interpolation to get an equally spaced spectrum
 AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # W m^-2 eV^-1
 AM15flux = AM15 / (Es*eV)  # number of photon m^-2 eV^-1 s^-1
-
 
 class Trap():
     def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
