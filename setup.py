@@ -27,7 +27,7 @@ setup(
     test_suite="nose.collector", 
     packages=find_packages(),
     # Specify any non-python files to be distributed with the package
-    package_data={'': ['*']},  # include all files
+    package_data={'examples': ['*']},  # include all files
     include_package_data=True,
     install_requires=[
         "scipy",
