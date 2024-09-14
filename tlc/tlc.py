@@ -37,7 +37,27 @@ AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # W m^-2 eV^-1
 AM15flux = AM15 / (Es*eV)  # number of photon m^-2 eV^-1 s^-1
 
 class Trap():
+    """
+    Class Trap 
+    """
     def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
+        """ 
+        initialise Trap class
+
+        Args:
+        D: defect name
+        E_t1: energy level 1 (eV)
+        E_t2: energy level 2 (eV)
+        N_t: total trap concentration (cm^-3)
+        q1: charge state 1
+        q2: charge state 2
+        q3: charge state 3
+        g: degeneracy factor
+        C_p1: hole capture coefficient for defect 1
+        C_p2: hole capture coefficient for defect 2
+        C_n1: electron capture coefficient for defect 1
+        C_n2: electron capture coefficient for defect 2
+        """ 
         self.D = D
         self.E_t1 = E_t1
         self.E_t2 = E_t2
@@ -54,6 +74,18 @@ class Trap():
         self.name = "${{{}}} ({}/{}/{})$".format(D, q1, q2, q3) 
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
+        """
+        calculate defect-mediated nonradiative recombination rate
+
+        Args:
+        n0: equilibrium electron concentration (cm^-3)
+        p0: equilibrium hole concentration (cm^-3)
+        delta_n: excess carrier concentration (cm^-3)
+        N_n: effective electron concentration (cm^-3)
+        N_p: effective hole concentration (cm^-3)
+        e_gap: band gap (eV)
+        temp: temperature (K)
+        """
         n = n0 + delta_n
         p = p0 + delta_n
 
@@ -85,16 +117,31 @@ class Trap():
 
 
 class tlc(object):
+    """
+    Class tlc
+    
+    ALPHA_FILE: optical absorption coefficient data
+    SCFERMI_FILE: sc-fermi file containing defect formation energies, charge states and degeneracy factors
+    TRAP_FILE: trap file containing defect levels, charge states and capture coefficients
+    """
+
     ALPHA_FILE = "alpha.csv"
     SCFERMI_FILE = "input-fermi.dat"
     TRAP_FILE = "trap.dat"
 
     def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000, intensity=1.0, l_sq=False, poscar_path="POSCAR", totdos_path="totdos.dat"):
         """
-        E_gap: band gap in eV
-        T: temperature in K
-        thickness: thickness in nm
-        intensity: light concentration, 1.0 = one Sun, 100 mW/cm^2 (not yet effective yet)
+        initialise tlc class
+
+        Args:
+        E_gap: band gap (eV)
+        T: operating temperature (K)
+        Tanneal: annealing temperature (K)
+        thickness: film thickness (nm)
+        intensity: light concentration, 1.0 = one Sun, 100 mW/cm^2
+        l_sq: Shockley-Queisser limit (True) or Trap limited conversion efficiency (False)
+        poscar_path: POSCAR file path
+        totdos_path: total DOS file path
         """
         try:
             E_gap, T, thickness, intensity = float(E_gap), float(
@@ -130,7 +177,7 @@ class tlc(object):
 
     def __repr__(self):
         """
-        params
+        return string representation of tlc class with input params
         """
         if self.l_sq:
             s = "Shockley-Queisser limit (SQ limit)\n"
@@ -151,12 +198,18 @@ class tlc(object):
         return s
 
     def calculate_SRH(self):
+        """ 
+        get defect-mediated nonradiative recombination rate
+        """
         self._get_scfermi(tlc.SCFERMI_FILE)
         self._run_scfermi(self.Tanneal, self.T, self.poscar_path, self.totdos_path)
         self._read_traps()
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
     def calculate_rad(self):
+        """
+        calculate band-to-band radiative recombination rate
+        """
         self.j_sc = self.__cal_J_sc()
         self.j0_rad = self.__cal_J0_rad()
         self.jv = self.__cal_jv(self.Vs)
@@ -170,6 +223,10 @@ class tlc(object):
         self.calculate_rad()
 
     def __cal_J_sc(self):
+        """ 
+        Calculate and return J_sc, the short circuit current
+        J_sc = q * (integrate(AM15flux * absorptivity dE) from 0 to E_gap) / EQE_EL
+        """
         fluxcumm = cumtrapz(
             self.absorptivity[::-1] * AM15flux[::-1], self.Es[::-1], initial=0)
         # fluxcumm = cumtrapz(AM15flux[::-1], self.Es[::-1], initial=0)
@@ -201,7 +258,11 @@ class tlc(object):
 
     def __cal_jv(self, Vs):
         """
-        simulate jv
+        Calculate and return J-V curve
+        J = -J_sc + J0_rad * (exp(qVs/kT) - 1) + R_SRH
+
+        Args:
+        Vs: voltage array
         """
         j_sc, j0_rad = self.j_sc, self.j0_rad
 
@@ -215,16 +276,15 @@ class tlc(object):
 
     def __cal_v_oc(self):
         """
+        Calculate and return the open circuit voltage
         """
-
         def f(v): return interp1d(self.jv.V, self.jv.J)(v)
         sol = root_scalar(f, bracket=[0, self.jv.V.max()])
         return sol.root
 
     def __find_max_point(self):
         """ 
-        Calculate aren return the voltage that produces
-        the maximum power
+        Calculate and return the voltage that produces the maximum power
         """
         power = self.jv.J * self.jv.V
         def f(v): return interp1d(self.jv.V, power)(v)
@@ -232,6 +292,9 @@ class tlc(object):
         return res.x
 
     def __calc_eff(self):
+        """
+        Calculate and return the maximum power point, the current at the maximum power point, and the efficiency
+        """
         v_max = self.__find_max_point()
         power = self.jv.J * self.jv.V
 
@@ -242,17 +305,26 @@ class tlc(object):
         return v_max, -j(v_max), -eff(v_max)
 
     def __calc_ff(self):
+        """
+        Calculate and return the fill factor
+        """
         ff = self.v_max * self.j_max / self.v_oc / self.j_sc
         return ff
 
     # absorptivity
     #
     def __read_alpha(self):
+        """
+        read optical absorption coefficient data
+        """
         alpha = pd.read_csv(tlc.ALPHA_FILE)
         # alpha.plot(x='E', y='alpha')
         self.alpha = alpha
 
     def _calc_absorptivity(self):
+        """
+        calculate absorptivity
+        """
         self.__read_alpha()
         absorptivity = 1 - \
             np.exp(-2 * self.alpha.alpha * self.thickness * 1E-7)  # nm -> cm
@@ -276,6 +348,9 @@ class tlc(object):
         run_scfermi_all(self.scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen, poscar_path=poscar_path, totdos_path=totdos_path)
 
     def _read_traps(self):
+        """
+        read trap file
+        """
         trap_list = []
         df_trap = pd.read_csv(tlc.TRAP_FILE, comment='#', sep=r'\s+', usecols=range(11))
 
@@ -288,9 +363,22 @@ class tlc(object):
         self.trap_list = trap_list
 
     def __get_delta_n(self, V):
+        """
+        calculate excess carrier concentration
+
+        Args:
+        V: voltage (V)
+        """
         scfermi = self.scfermi
 
         def calc_DOS_eff(carrier_concnt, e_f, temp):
+        """
+        calculate effective DOS
+        Args:
+        carrier_concnt: carrier concentration (cm^-3)
+        e_f: Fermi level (eV)
+        temp: temperature (K)
+        """
             return carrier_concnt/np.exp(-e_f/(kb*temp))
 
         n0 = scfermi.n
@@ -302,6 +390,9 @@ class tlc(object):
         N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
         N_n = calc_DOS_eff(n0, e_gap - scfermi.fermi_level, scfermi.T)
 
+        print(f"N_p: {N_p}")
+        print(f"N_n: {N_n}")
+
         scfermi.N_p = N_p
         scfermi.N_n = N_n
 
@@ -311,6 +402,9 @@ class tlc(object):
         return delta_n
 
     def __cal_R_SRH(self, V):
+        """
+        calculate defect-mediated nonradiative recombination rate
+        """
         assert self.scfermi is not None
 
         delta_n = self.__get_delta_n(V)
@@ -333,11 +427,17 @@ class tlc(object):
         return R
 
     def __get_R_SRH(self, Vs):
+        """
+        get defect-mediated nonradiative recombination rate
+        """
         Rs = np.array([self.__cal_R_SRH(V) for V in Vs])
         return Rs
 
     # Plot helper
     def plot_tauc(self):
+         """
+            plot Tauc figure
+        """
         tauc = (self.alpha.alpha*self.alpha.E)**2
         plt.figure(0)
         plt.plot(self.alpha.E, tauc)
@@ -355,6 +455,9 @@ class tlc(object):
         # plt.show()
 
     def plot_alpha(self, l_plot_solar=True):
+        """
+        plot absorption coefficient figure
+        """
         self.alpha.plot(x='E', y='alpha', logy=True)
         plt.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
                  ls='--', label="Band gap")
@@ -379,6 +482,9 @@ class tlc(object):
         # plt.show()
 
     def plot_jv(self):
+        """
+        plot J-V curve
+        """
         self.jv.mask(self.jv.J > 100).plot(x="V", y="J")
         plt.ylim((self.j_sc*-1.2, 0))
         plt.xlim((0, self.E_gap))
