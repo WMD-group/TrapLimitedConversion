@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detailed balance limit (Shockley-Queisser limit) &mdash; TLC 0.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+      <link rel="stylesheet" href="_static/fonts.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sphinx-design.min.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=10f1778b"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/design-tabs.js?v=f930bc37"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Tutorials" href="Tutorials.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            TLC
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Usage</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="Tutorials.html">Tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Detailed balance limit (Shockley-Queisser limit)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#radiative-limit-based-on-thickness-dependent-absorptivity">Radiative limit based on thickness-dependent absorptivity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trap-limited-conversion-efficiency">Trap-limited conversion efficiency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plotting-functions">Plotting functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#absorption">Absorption</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#j-v-curve">J-V curve</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TLC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="Tutorials.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Detailed balance limit (Shockley-Queisser limit)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">package_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;tlc&#39;</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">package_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">package_path</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">tlc</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section class="tex2jax_ignore mathjax_ignore" id="detailed-balance-limit-shockley-queisser-limit">
+<h1>Detailed balance limit (Shockley-Queisser limit)<a class="headerlink" href="#detailed-balance-limit-shockley-queisser-limit" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p>Shockley and Queisser proposed the efficiency limit of a single junction solar cell is a function of the band gap (<a class="reference external" href="https://doi.org/10.1063/1.1736034">original paper here</a>).
+This approach is based on several assumptions:</p>
+<ul>
+<li><p>All photons with energies equal or larger than the band gap are absorbed.</p></li>
+<li><p>Each absorbed photon creates one electron-hole pair.</p></li>
+<li><p>All charge carriers can reach their respective contacts.</p></li>
+<li><p>Only radiative recombination (band-to-band electron-hole recombination) is considered.</p></li>
+</ul>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Required inputs are:</p>
+<ol class="arabic simple">
+<li><p>Solar spectrum. The AM1.5g spectrum is used in this example (from <a class="reference external" href="https://www.nrel.gov/grid/solar-resource/spectra.html">NREL</a>). But you can always input your specific spectrum.</p></li>
+<li><p>Band gap of the bulk material.</p></li>
+<li><p>Operation temperature <code class="docutils literal notranslate"><span class="pre">T</span></code> of the solar cell (with a default value of 300 K).</p></li>
+</ol>
+</li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tlc_Sb2Se3_sq</span> <span class="o">=</span> <span class="n">tlc</span><span class="p">(</span><span class="mf">1.419</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">l_sq</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#l_sq=True turns on the SQ mode</span>
+<span class="n">tlc_Sb2Se3_sq</span><span class="o">.</span><span class="n">calculate_rad</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">tlc_Sb2Se3_sq</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Shockley-Queisser limit (SQ limit)
+T: 300.0 K
+E_gap: 1.4 eV
+Thickness: 2000.0 nm
+===
+J_sc: 32.071 mA/cm^2
+J0_rad: 1.22e-18 mA/cm^2
+V_oc: 1.156 V
+V_max, J_max: 1.059 V, 31.319 mA/cm^2
+FF: 89.459%
+Efficiency: 33.166%
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="radiative-limit-based-on-thickness-dependent-absorptivity">
+<h1>Radiative limit based on thickness-dependent absorptivity<a class="headerlink" href="#radiative-limit-based-on-thickness-dependent-absorptivity" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p>If you want to replace the step-like absorptivity by the real absorption, an extra file of optical absorption coefficient α as a function of energy is needed.</p></li>
+<li><p>The absorptivity <em>a</em> is calculated as <em>a</em>=1-exp(-2<em>αL</em>), where <em>L</em> is the film thickness.</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tlc</span><span class="o">.</span><span class="n">ALPHA_FILE</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Sb2Se3/alpha.csv&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tlc_Sb2Se3_rad</span> <span class="o">=</span> <span class="n">tlc</span><span class="p">(</span><span class="mf">1.419</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+<span class="n">tlc_Sb2Se3_rad</span><span class="o">.</span><span class="n">calculate_rad</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">tlc_Sb2Se3_rad</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Trap limited conversion efficiency (TLC)
+T: 300.0 K
+E_gap: 1.4 eV
+Thickness: 500.0 nm
+===
+J_sc: 26.362 mA/cm^2
+J0_rad: 7.76e-21 mA/cm^2
+V_oc: 1.282 V
+V_max, J_max: 1.182 V, 25.804 mA/cm^2
+FF: 90.272%
+Efficiency: 30.501%
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="trap-limited-conversion-efficiency">
+<h1>Trap-limited conversion efficiency<a class="headerlink" href="#trap-limited-conversion-efficiency" title="Link to this heading"></a></h1>
+<p>To include the effects of point defects, additional inputs are required:</p>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">POSCAR</span></code> and density of states files of the bulk system.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SCFERMI_FILE</span></code>. It includes the thermodynamic properties of defects, and can be obtained by <a class="reference external" href="https://github.com/jbuckeridge/sc-fermi">sc-fermi</a> and follows the same format.</p>
+<p>An example file is like:</p>
+</li>
+</ol>
+<blockquote>
+<div><div class="highlight-none notranslate"><div class="highlight"><pre><span></span> 1   #  whether the bulk system is spin polarised or not (1 = non-spin polarised; 2 = spin polarised)
+ 112   # number of electrons in bulk unit cell 
+ 1.419   # bandgap (eV)
+ 648.15   # annealing temperature (K)
+ 22   # number of defect species considered in the system
+ # for each defect
+ Vac_Sb_1 7 1 # defect name; number of charge states; number of possible sites for that defect in the unit cell
+ 0 2.099 12  #charge; formation energy (at E_F = 0); degeneracy (including spin and geometry degeneracy)
+ 1 0.938 24
+ -1 2.419 24
+ -2 3.364 12
+ # repeat for each defect ...
+</pre></div>
+</div>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">Tanneal</span></code>. The annealing temperature to calculate the self-consistent Fermi level.</p></li>
+</ol>
+<ol class="arabic" start="4">
+<li><p><code class="docutils literal notranslate"><span class="pre">TRAP_FILE</span></code>. It includes the information of capture coefficients of each transition. Capture coefficients can be calculated by <a class="reference external" href="https://github.com/WMD-group/CarrierCapture.jl">CarrierCapture.jl</a> or similar packages such as <a class="reference external" href="https://github.com/mturiansky/nonrad">NonRad</a>.</p>
+<p>An example of an amphoteric defect has the format:</p>
+</li>
+</ol>
+<blockquote>
+<div><div class="highlight-none notranslate"><div class="highlight"><pre><span></span># defect name      charge states    transition level (eV)  degeneracy  capture coefficienct for hole or electron (cm^3 s^−1)
+     D           q1     q2     q3    level1    level2         g          C_p1        C_n1       C_p2       C_n2
+  Vac_Se_1       2      1     00     0.896       0            1         1.31e-9     7.91e-6      0          0
+  Vac_Se_2       2      1      0     1.047      0.875         2         1.22e-8     5.63e-6     1.25e-13  8.00e-16
+# repeat for each defect ...
+</pre></div>
+</div>
+</div></blockquote>
+<p>Note:</p>
+<ul class="simple">
+<li><p>For transitions between two charge states of a defect</p>
+<ul>
+<li><p>Specify <code class="docutils literal notranslate"><span class="pre">q3</span></code> as <code class="docutils literal notranslate"><span class="pre">00</span></code> and input <code class="docutils literal notranslate"><span class="pre">0</span></code> for <code class="docutils literal notranslate"><span class="pre">level2</span></code>, <code class="docutils literal notranslate"><span class="pre">C_p2</span></code> and <code class="docutils literal notranslate"><span class="pre">C_n2</span></code>.</p></li>
+<li><p>The degeneracy term <span class="math notranslate nohighlight">\(g = 1\)</span>.</p></li>
+</ul>
+</li>
+<li><p>For transitions between three charge states (i.e. amphoteric defect)</p>
+<ul>
+<li><p>The charge states of <code class="docutils literal notranslate"><span class="pre">q1</span></code>, <code class="docutils literal notranslate"><span class="pre">q2</span></code> and <code class="docutils literal notranslate"><span class="pre">q3</span></code> must be in decending order.</p></li>
+<li><p>For a transition between states s and s+1, the degeneracy g is defined as <span class="math notranslate nohighlight">\(g=g_s/g_{s+1}\)</span>.</p></li>
+</ul>
+</li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">poscar_path</span><span class="o">=</span><span class="s2">&quot;Sb2Se3/POSCAR&quot;</span>
+<span class="n">totdos_path</span><span class="o">=</span><span class="s2">&quot;Sb2Se3/totdos.dat&quot;</span>
+<span class="n">tlc</span><span class="o">.</span><span class="n">ALPHA_FILE</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Sb2Se3/alpha.csv&quot;</span>
+<span class="n">tlc</span><span class="o">.</span><span class="n">SCFERMI_FILE</span> <span class="o">=</span> <span class="s2">&quot;Sb2Se3/input-fermi.dat&quot;</span>
+<span class="n">tlc</span><span class="o">.</span><span class="n">TRAP_FILE</span> <span class="o">=</span> <span class="s2">&quot;Sb2Se3/trap_Sb2Se3.dat&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tlc_Sb2Se3</span> <span class="o">=</span> <span class="n">tlc</span><span class="p">(</span><span class="mf">1.419</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">Tanneal</span><span class="o">=</span><span class="mi">550</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span><span class="n">poscar_path</span><span class="o">=</span><span class="n">poscar_path</span><span class="p">,</span><span class="n">totdos_path</span><span class="o">=</span><span class="n">totdos_path</span><span class="p">)</span>
+    
+<span class="n">tlc_Sb2Se3</span><span class="o">.</span><span class="n">calculate</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tlc_Sb2Se3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Trap limited conversion efficiency (TLC)
+T: 300.0 K
+E_gap: 1.4 eV
+Thickness: 500.0 nm
+===
+J_sc: 26.362 mA/cm^2
+J0_rad: 7.76e-21 mA/cm^2
+V_oc: 0.874 V
+V_max, J_max: 0.733 V, 24.795 mA/cm^2
+FF: 78.918%
+Efficiency: 18.175%
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="plotting-functions">
+<h1>Plotting functions<a class="headerlink" href="#plotting-functions" title="Link to this heading"></a></h1>
+<section id="absorption">
+<h2>Absorption<a class="headerlink" href="#absorption" title="Link to this heading"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tlc_Sb2Se3</span><span class="o">.</span><span class="n">plot_alpha</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(0.0, 5.0)
+</pre></div>
+</div>
+<img alt="_images/79b9d22d6b6c2185cf18e1ea6650c61e9a11f8849ab009d6d9c32fc47bf709ca.png" src="_images/79b9d22d6b6c2185cf18e1ea6650c61e9a11f8849ab009d6d9c32fc47bf709ca.png" />
+</div>
+</div>
+</section>
+<section id="j-v-curve">
+<h2>J-V curve<a class="headerlink" href="#j-v-curve" title="Link to this heading"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tlc_Sb2Se3</span><span class="o">.</span><span class="n">plot_jv</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/e8b9e770165fa5c753d3e21f3615f8c94f1236c10e6b63cd9e702ef9eb94a922.png" src="_images/e8b9e770165fa5c753d3e21f3615f8c94f1236c10e6b63cd9e702ef9eb94a922.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Tutorials.html" class="btn btn-neutral float-left" title="Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
