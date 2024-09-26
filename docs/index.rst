@@ -12,10 +12,12 @@ TrapLimitedConversion
 
    Installation
    Tutorials
+   Python API <TrapLimitedConversion>
 
 .. toctree::
    :hidden:
    :caption: Information
    :maxdepth: 1
 
+   Contributing
 
