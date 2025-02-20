@@ -17,37 +17,85 @@ kB = 8.6173303E-5   # eV K-1
 
 
 class Chg_state:
+ """   Class describing charge state of a defect
+
+    Args:
+        q: charge state
+        energy: formation energy when E_F = 0
+        g: degeneracy
+        concnt: concentration
+ """
     def __init__(self, q, energy, g):
-        self.q = q              # charge state
-        self.energy = energy    # formation energy when E_F = 0
-        self.g = g              # degeneracy
-        self.concnt = 0         # concentration
+        """
+        Initialise Chg_state object   
+        """
+        self.q = q              
+        self.energy = energy    
+        self.g = g              
+        self.concnt = 0         
 
     def set_concnt(self, concnt):
+        """ set concentration
+         Args:
+            concnt: concentration
+        """
         self.concnt = concnt
 
     def calc_occ(self, E_F, T):
+        """ calculate occupation probability
+         Args:
+            E_F: Fermi level
+            T: temperature
+        Returns:
+            occ: occupation probability
+        """
         e_form = self.energy + E_F * self.q    # Formation energy
         # partition function is 0; dilute limit
         return self.g*np.exp(-e_form/kB/T)
 
 
 class Defect:
+ """  
+    Class describing defect species
+
+    Args:
+        name: name of the defect
+        n_charge: number of charge states
+        n_site: number of sites in the unit cell
+        l_frozen: frozen mode (fixed total concentration of defects)
+
+  """   
     def __init__(self, name, n_charge, n_site, l_frozen=False):
-        self.name = name             # name
-        self.n_site = n_site         # number of sites in the unit cell
-        self.n_charge = n_charge     # number of charge states
+        """
+        Initialise Defect object
+        """
+        self.name = name             
+        self.n_site = n_site         
+        self.n_charge = n_charge     
         self.chg_states = []         # list of Chg_state objects
         self.concnt = 0              # total concentrations; sum chg_states.concnt
-        self.l_frozen = l_frozen     # is frozen? (fixed total concentration)
+        self.l_frozen = l_frozen     
 
     def add_chg_state(self, q, energy, g):
+        """ add charge state
+         Args:
+            q: charge state
+            energy: formation energy when E_F = 0
+            g: degeneracy
+        """
         self.chg_states.append(Chg_state(q, energy, g))
 
     def calc_tot_concnt(self):
+        """ sum total concentration """
         self.concnt = np.sum([cs.concnt for cs in self.chg_states])
 
     def calc_concnt(self, vol, E_F, T):
+        """ calculate concentration
+         Args:
+            vol: volume of the unit cell
+            E_F: Fermi level
+            T: temperature
+        """
         cs_concnts = np.zeros(len(self.chg_states))
         for cs_i, cs in enumerate(self.chg_states):
             occ = cs.calc_occ(E_F, T)
@@ -55,7 +103,7 @@ class Defect:
                 occ = 1.
             concnt = self.n_site / vol * occ
             cs_concnts[cs_i] = concnt
-
+    
         for cs_i, cs in enumerate(self.chg_states):
             if self.l_frozen:
                 if np.sum(cs_concnts) < 1E-100:
@@ -66,23 +114,43 @@ class Defect:
 
 
 class Scfermi:
+    """ Class describing sc-fermi calculation"""    
     def __init__(self, n_spin, n_elect, e_gap, T, n_defect, defects, n_frozen=0, phase="", verbose=False):
-        self.n_spin = n_spin        # spin polarized (2) or not (1)
-        self.n_elect = n_elect      # number of electyrons in the unit cell
-        self.e_gap = e_gap          # band gap
-        self.T = T                  # temperature
-        self.n_defect = n_defect    # number of defects
-        self.defects = defects      # list of Defect objects
-        self.fermi_level = 0        # Fermi level
-        self.n_frozen = None        # if frozen?
+        """ Initialise Scfermi object
+         Args:
+            n_spin: spin polarized (2) or not (1)
+            n_elect: number of electyrons in the unit cell
+            e_gap: band gap
+            T: temperature
+            n_defect: number of defects
+            defects: list of Defect objects
+            n_frozen: frozen mode (fixed total concentration of defects)
+            phase: phase 
+            verbose: verbose mode
+        """
+        self.n_spin = n_spin        
+        self.n_elect = n_elect      
+        self.e_gap = e_gap          
+        self.T = T                  
+        self.n_defect = n_defect    
+        self.defects = defects      
+        self.fermi_level = 0        
+        self.n_frozen = None       
         self.n = 0
         self.p = 0      # carrier concentrations
         self.excess_charge = 0      # excess charge carriers
-        self.phase = phase            # name of scfermi ()
+        self.phase = phase            
         self.verbose = verbose
 
     @classmethod
     def from_file(self, path="input-fermi.dat", mode=None, phase=""):
+        """ read sc-fermi input file
+
+            Args:   
+            path: path to the input file
+            mode: if frozen mode
+            phase: phase
+         """
         with open(path, "r", encoding='utf8') as f:
             lines = []
             for line in f:
@@ -125,6 +193,10 @@ class Scfermi:
             return scfermi
 
     def write_input_file(self, path):
+        """ write sc-fermi input file
+         Args:  
+         path: path to the file
+        """
         def write_defect(f, d):
             # metadata
             f.write("{:<10s} {:>2d} {:>2d} \n".format(
@@ -145,6 +217,11 @@ class Scfermi:
                 write_defect(f, d)
 
     def write_frozen_input_file(self, T, path):
+        """ write frozen sc-fermi input file
+         Args:  
+         T: temperature 
+         path: path to the file
+        """
         self.T = T
         self.write_input_file(path)
         with open(path, "a", encoding='utf8') as f:
@@ -158,6 +235,10 @@ class Scfermi:
             f.write("0\n")
 
     def read_output(self, path):
+        """ read sc-fermi output file
+         Args:  
+         path: path to the file
+        """
         with open(path, 'r', encoding='utf8') as f:
             # fermi level
             for line in f:
@@ -199,6 +280,10 @@ class Scfermi:
                 defect.calc_tot_concnt()
 
     def _write_output(self, path):
+        """ write sc-fermi output file
+         Args:  
+         path: path to the file
+        """
         with open(path, 'w', encoding='utf8') as f:
             # fermi level
             f.write(r"SC Fermi level : ", self.fermi_level, "(eV)\n")
@@ -221,17 +306,27 @@ class Scfermi:
                     f.write("               :{:4i}     {0:.16E}    0.00".format(
                         cs.q, cs.concnt))
 
-    # def run(self, Tanneal=None, mode=None):
-    #     if mode is None:
-    #         result = subprocess.run(['sc-fermi > output.log'],
-    #                                 shell=True, stdout=subprocess.PIPE)
-    #     if mode == 'frozen':
-    #         result = subprocess.run(['frozen-sc-fermi > output-frozen.log'],
-    #                                 shell=True, stdout=subprocess.PIPE)
-
     def _run(self, T=None, mode=None, dopants=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
+        """ run sc-fermi calculation
+         Args:  
+         T: temperature
+         mode: if frozen mode
+         dopants: list of dopants
+         poscar_path: path to the POSCAR file
+         totdos_path: path to the total DOS file
+        """ 
         # built-in sc-fermi run
         def _get_carrier_concnt(energy, dos, fermi_level, T):
+            """ calculate carrier concentration
+                Args:
+                    energy: defect formation energy
+                    dos: density of states
+                    fermi_level: self-consistent Fermi level
+                    T: temperature
+                Returns:
+                    n: electron concentration
+                    p: hole concentration
+            """
             vb_idx = np.where(energy <= 0)
             cb_idx = np.where(energy >= self.e_gap)
 
@@ -267,6 +362,7 @@ class Scfermi:
             return q - n/vol + p/vol
 
         def _freez_all():
+            """ freeze all defects """
             for defect in self.defects:
                 defect.l_frozen = True
 
@@ -309,6 +405,14 @@ class Scfermi:
 def run_scfermi_all(scfermi, Tanneal=853, Tfrozen=300, builtin_run=True, dopants_anneal=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
     """ 
     run sc-fermi and frozen-sc-fermi subsequently
+    Args:
+        scfermi: Scfermi object
+        Tanneal: annealing temperature
+        Tfrozen: frozen temperature
+        builtin_run: built-in sc-fermi run
+        dopants_anneal: list of dopants
+        poscar_path: path to the POSCAR file
+        totdos_path: path to the total DOS file
     """
     # if builtin_run:
     scfermi._run(T=Tanneal, dopants=dopants_anneal, poscar_path=poscar_path, totdos_path=totdos_path)
@@ -336,8 +440,18 @@ def run_scfermi_all(scfermi, Tanneal=853, Tfrozen=300, builtin_run=True, dopants
 def get_all(path_i, path_f, n_points=20):
     """ 
     read two sc-fermi input files and make and return {n_points} sc-fermi list
+    Args:
+        path_i: path to the initial sc-fermi input file
+        path_f: path to the final sc-fermi input file
+        n_points: number of points
     """
     def _interpolate_e_form(scfermi_i, scfermi_f, ratio=1):
+        """ interpolate formation energy
+        Args:
+            scfermi_i: initial Scfermi object
+            scfermi_f: final Scfermi object
+            ratio: interpolation ratio
+        """
         # scfermi = copy.deepcopy(scfermi_i)
         # (self, n_spin, n_elect, e_gap, T, n_defect, defects, n_frozen=0):
 
@@ -383,6 +497,9 @@ def get_all(path_i, path_f, n_points=20):
 
 
 def write_data(scfermi_list, file='scfermi.pkl'):
+    """
+    write the list of scfermi objects
+    """
     # T, n, p, D^q1, D^q2
     n_defect_q = [len(defect.chg_states) for defect in scfermi_list[0].defects]
     n_defect_q = sum(n_defect_q)
@@ -427,7 +544,17 @@ def save(scfermi_list, file='scfermi.pkl'):
 
 
 def main_interpolate(path_i, path_f, file, Tfrozen=300, Tanneal=853, n_points=20):
-
+    """
+    interpolate sc-fermi input files
+    and run sc-fermi calculation
+    Args:
+        path_i: path to the initial sc-fermi input file
+        path_f: path to the final sc-fermi input file
+        file: path to the output file
+        Tfrozen: frozen temperature
+        Tanneal: annealing temperature
+        n_points: number of points
+    """
     scfermi_list = get_all(path_i, path_f, n_points=n_points)
 
     for i, scfermi in enumerate(scfermi_list):
@@ -438,7 +565,24 @@ def main_interpolate(path_i, path_f, file, Tfrozen=300, Tanneal=853, n_points=20
 
 
 def main(paths, file, Tfrozen=300, Tanneal=853, n_points=20, dopants_anneal=[], poscar_path="POSCAR", totdos_path="totdos.dat"):
+    """
+    run sc-fermi calculation
+    Args:
+        paths: path to the input files
+        Tfrozen: frozen temperature
+        Tanneal: annealing temperature
+        n_points: number of points
+        dopants_anneal: list of dopants 
+        poscar_path: path to the POSCAR file
+        totdos_path: path to the total DOS file
+    """
     def _read_scfermi_input_all(path="./"):
+        """ read all sc-fermi input files
+        Args:
+        path: path to the input files
+        Returns:
+        scfermi_list: list of Scfermi objects
+        """
         scfermi_list = []
         # find input_file
         files = []
