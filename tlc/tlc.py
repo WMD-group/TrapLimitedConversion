@@ -248,14 +248,16 @@ class tlc(object):
         Calculate and return J_sc, the short circuit current
         J_sc = q * (integrate(AM15flux * absorptivity dE) from 0 to E_gap) / EQE_EL
         """
-        fluxcumm = cumtrapz(
+        # unit-less times m^-2 eV^-1 s^-1, integrated over energy -> m^-2 s^-1:
+        fluxcumm = cumulative_trapezoid(
             self.absorptivity[::-1] * AM15flux[::-1], self.Es[::-1], initial=0)
-        # fluxcumm = cumtrapz(AM15flux[::-1], self.Es[::-1], initial=0)
-        # TODO: no E_gap
-        fluxaboveE = fluxcumm[::-1] * -1 * self.intensity
-        flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)
-        #
-        J_sc = flux_absorbed * q * 0.1  # mA/cm^2  (0.1: from A/m2 to mA/cm2)
+        # TODO: no E_gap (should be independent of E_gap; no absorption below E_gap)
+        fluxaboveE = (fluxcumm[::-1] * -1  # invert spectrum
+                      * self.intensity)  # intensity = 1 for 1 Sun; 100 mW/cm^2
+        flux_absorbed = interp1d(self.Es, fluxaboveE)(self.E_gap)  # above-gap photon flux in m^-2 s^-1
+        # Below; J_sc: m^-2 s^-1 * C -> (C/s)/m^-2 = A/m^2 = (1000 mA)/(100 cm)^2 = 0.1 mA/cm^-2;
+        # so * 0.1 converts final units to -> mA/cm^2:
+        J_sc = flux_absorbed * scpc.e * 0.1  # mA/cm^2  (0.1: from A/m2 to mA/cm2)
         return J_sc
 
     def __cal_J0_rad(self):
@@ -388,14 +390,14 @@ class tlc(object):
         scfermi = self.scfermi
 
         def calc_DOS_eff(carrier_concnt, e_f, temp):
-        """
-        calculate effective DOS
-        Args:
-        carrier_concnt: carrier concentration (cm^-3)
-        e_f: Fermi level (eV)
-        temp: temperature (K)
-        """
-            return carrier_concnt/np.exp(-e_f/(kb*temp))
+            """
+            calculate effective DOS
+            Args:
+            carrier_concnt: carrier concentration (cm^-3)
+            e_f: Fermi level (eV)
+            temp: temperature (K)
+            """
+            return carrier_concnt/np.exp(-e_f/(kb_in_eV_per_K*temp))
 
         n0 = scfermi.n
         p0 = scfermi.p
