@@ -1,10 +1,10 @@
-sphinx
+sphinx>=7
+myst-nb>=1.0
 recommonmark
+renku-sphinx-theme>=0.5.0
+sphinx_rtd_theme>=2.0
 sphinx_click
 sphinx_design
-renku-sphinx-theme
-myst_nb
-nbsphinx
 
 # required dependencies:
 pandas 
