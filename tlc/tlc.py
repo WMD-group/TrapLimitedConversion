@@ -457,8 +457,8 @@ class tlc(object):
 
     # Plot helper
     def plot_tauc(self):
-         """
-            plot Tauc figure
+        """
+        Plot Tauc figure
         """
         tauc = (self.alpha.alpha*self.alpha.E)**2
         plt.figure(0)
