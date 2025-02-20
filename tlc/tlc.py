@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import scipy.constants as scpc
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar, minimize_scalar
 
@@ -268,7 +268,7 @@ class tlc(object):
         '''
         phi = 2 * np.pi * (((self.Es*scpc.eV)**2) * scpc.eV / ((scpc.h**3) * (scpc.c**2)) / (
                            np.exp(self.Es*scpc.eV / (scpc.k*self.T)) - 1))
-        fluxcumm = cumtrapz(
+        fluxcumm = cumulative_trapezoid(
             self.absorptivity[::-1] * phi[::-1], self.Es[::-1], initial=0)
         # TODO: no E_gap (should be independent of E_gap; no absorption below E_gap)
         fluxaboveE = fluxcumm[::-1] * -1
