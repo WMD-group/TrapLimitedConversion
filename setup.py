@@ -30,7 +30,7 @@ setup(
     #package_data={'examples': ['*']},  # include all files
     include_package_data=True,
     install_requires=[
-        "scipy",
+        "scipy>=1.6",
         "numpy",
         "matplotlib",
         "pymatgen"

@@ -17,14 +17,14 @@ kB = 8.6173303E-5   # eV K-1
 
 
 class Chg_state:
- """   Class describing charge state of a defect
+    """   Class describing charge state of a defect
 
     Args:
         q: charge state
         energy: formation energy when E_F = 0
         g: degeneracy
         concnt: concentration
- """
+    """
     def __init__(self, q, energy, g):
         """
         Initialise Chg_state object   
@@ -55,7 +55,7 @@ class Chg_state:
 
 
 class Defect:
- """  
+    """
     Class describing defect species
 
     Args:
@@ -63,8 +63,7 @@ class Defect:
         n_charge: number of charge states
         n_site: number of sites in the unit cell
         l_frozen: frozen mode (fixed total concentration of defects)
-
-  """   
+    """
     def __init__(self, name, n_charge, n_site, l_frozen=False):
         """
         Initialise Defect object
