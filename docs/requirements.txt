@@ -1,5 +1,6 @@
 sphinx>=7
 myst-nb>=1.0
+nbsphinx
 recommonmark
 renku-sphinx-theme>=0.5.0
 sphinx_rtd_theme>=2.0
