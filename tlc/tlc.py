@@ -319,7 +319,7 @@ class tlc(object):
         power = self.jv.J * self.jv.V
 
         def eff(v): return interp1d(self.jv.V, power)(v) \
-            / sun_power * self.intensity
+            / (sun_power * self.intensity)
 
         def j(v): return interp1d(self.jv.V, self.jv.J)(v)
         return v_max, -j(v_max), -eff(v_max)
