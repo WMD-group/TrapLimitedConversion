@@ -48,7 +48,7 @@ def ev_to_or_from_nm(eV_or_nm: float):
 
 E = ev_to_or_from_nm(WL)  # eV
 solar_per_E = solar_per_nm * (scpc.eV/1e-9) * scpc.h * scpc.c / (scpc.eV*E)**2  # jacobian transformation, converts solar irradiance to: W m^-2 eV^-1
-Es = np.arange(0.32, 4.401, 0.002)  # equally-spaced energy spectrum for solar irradiance
+Es = np.linspace(0.32, 4.40, 2041)  # equally-spaced energy spectrum for solar irradiance
 
 # linear interpolation to get an equally spaced spectrum
 AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # AM15 (standard) solar irradiance in W m^-2 eV^-1
@@ -174,7 +174,8 @@ class tlc(object):
         if T <= 0 or E_gap < 0.31:
             raise ValueError("T must be greater than 0 and " +
                              "E_gap cannot be less than 0.31")
-        self.Vs = np.arange(-0.1, E_gap, 0.001)
+        n_v = int(round((E_gap + 0.1) / 0.001))
+        self.Vs = np.linspace(-0.1, -0.1 + (n_v - 1) * 0.001, n_v)
         self.T = T
         self.Tanneal = Tanneal
         self.E_gap = E_gap
