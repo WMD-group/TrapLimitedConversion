@@ -1,7 +1,7 @@
 # TLC Refactoring Log
 
-## Current Stage: 2
-## Current Step: 2.1
+## Current Stage: 2 (Complete)
+## Current Step: done
 
 ## Completed Steps
 - 1.1: Fix Trap.__str__ typos (E_t → E_t1, elf → self) ✓
@@ -11,6 +11,17 @@
 - 1.7: Scfermi.from_file uses cls for classmethod ✓
 - 1.9: Remove debug print statements from __get_delta_n ✓
 - 1.10: np.arange float step → np.linspace for reproducibility ✓
+- 2.1: Add pyproject.toml, create tests directory ✓
+- 2.2: Add SQ-limit regression tests (8 tests, all passing) ✓
+- 2.3: Add CI test workflow for Python 3.10 and 3.12 ✓
+- 2.4: Add DefectData dataclass for SRH input ✓
+- 2.5: Add doped interface (defect_data_from_doped) ✓
+- 2.6: Add calculate_SRH_from_data() with DefectData support ✓
+- 2.7: Configurable alpha_file, add sq_limit classmethod, remove poscar/totdos from __init__ ✓
+- 2.8: Trap uses keyword args, add single_level factory ✓
+- 2.9: Add SRH integration tests (5 tests, all passing) ✓
+- 2.10: Remove scfermi dependency from tlc.py (-116 lines) ✓
+- 2.11: Clean package exports, move scfermi to legacy, version 0.4.0 ✓
 
 ## Skipped
 - 1.4: __find_max_point — original sign convention is internally consistent, not a bug
