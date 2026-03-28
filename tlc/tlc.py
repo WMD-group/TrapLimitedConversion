@@ -408,9 +408,6 @@ class tlc(object):
         N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
         N_n = calc_DOS_eff(n0, e_gap - scfermi.fermi_level, scfermi.T)
 
-        print(f"N_p: {N_p}")
-        print(f"N_n: {N_n}")
-
         scfermi.N_p = N_p
         scfermi.N_n = N_n
 
