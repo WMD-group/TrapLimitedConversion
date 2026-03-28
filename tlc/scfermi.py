@@ -142,7 +142,7 @@ class Scfermi:
         self.verbose = verbose
 
     @classmethod
-    def from_file(self, path="input-fermi.dat", mode=None, phase=""):
+    def from_file(cls, path="input-fermi.dat", mode=None, phase=""):
         """ read sc-fermi input file
 
             Args:   
