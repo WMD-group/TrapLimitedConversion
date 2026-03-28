@@ -8,7 +8,7 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar, minimize_scalar
 
-from scfermi import Scfermi, run_scfermi_all
+from .scfermi import Scfermi, run_scfermi_all
 
 kb_in_eV_per_K = scpc.physical_constants["Boltzmann constant in eV/K"][0]  # 8.6173303e-5 eV K-1, Boltzmann constant
 sun_power = 100.   # AM1.5G standard irradiance in mW/cm^2; https://www.pveducation.org/pvcdrom/appendices/standard-solar-spectra
