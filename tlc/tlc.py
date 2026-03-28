@@ -152,7 +152,13 @@ class tlc(object):
     SCFERMI_FILE = "input-fermi.dat"
     TRAP_FILE = "trap.dat"
 
-    def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000, intensity=1.0, l_sq=False, poscar_path="POSCAR", totdos_path="totdos.dat"):
+    @classmethod
+    def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0):
+        """Create a tlc instance in Shockley-Queisser limit mode."""
+        return cls(E_gap, T=T, thickness=thickness, intensity=intensity, l_sq=True)
+
+    def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000,
+                 intensity=1.0, l_sq=False, alpha_file="alpha.csv"):
         """
         initialise tlc class
 
@@ -163,8 +169,7 @@ class tlc(object):
         thickness: film thickness (nm)
         intensity: light concentration, 1.0 = one Sun, 100 mW/cm^2
         l_sq: Shockley-Queisser limit (True) or Trap limited conversion efficiency (False)
-        poscar_path: POSCAR file path
-        totdos_path: total DOS file path
+        alpha_file: optical absorption coefficient CSV file path
         """
         try:
             E_gap, T, thickness, intensity = float(E_gap), float(
@@ -185,8 +190,7 @@ class tlc(object):
         self.intensity = intensity  # TODO: Fully implement and remove not in docstring above
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
-        self.poscar_path = poscar_path
-        self.totdos_path = totdos_path
+        self.alpha_file = alpha_file
         self.l_sq = l_sq
         if not l_sq:
             self._calc_absorptivity()
@@ -232,7 +236,7 @@ class tlc(object):
             stacklevel=2,
         )
         self._get_scfermi(tlc.SCFERMI_FILE)
-        self._run_scfermi(self.Tanneal, self.T, self.poscar_path, self.totdos_path)
+        self._run_scfermi(self.Tanneal, self.T, "POSCAR", "totdos.dat")
         self._read_traps()
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
@@ -357,7 +361,7 @@ class tlc(object):
         """
         read optical absorption coefficient data
         """
-        alpha = pd.read_csv(tlc.ALPHA_FILE)
+        alpha = pd.read_csv(self.alpha_file)
         # alpha.plot(x='E', y='alpha')
         self.alpha = alpha
 
@@ -524,7 +528,7 @@ class tlc(object):
         plt.ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
                    fontsize=16)
         if not self.l_sq: 
-            plt.title("Absorption coefficient (taken from {})".format(tlc.ALPHA_FILE))
+            plt.title("Absorption coefficient (taken from {})".format(self.alpha_file))
         else: 
             plt.title("Absorption coefficient (SQ limit)".format(tlc.ALPHA_FILE))
         plt.legend(loc=1)
