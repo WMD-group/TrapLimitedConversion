@@ -334,7 +334,6 @@ class Scfermi:
             # normalize
             tot_elect = np.sum(dos[vb_idx]) * del_E
             dos_ = dos * self.n_elect/tot_elect
-            dos_ = dos
 
             # Fermi-Dirac distribution
             kbT = T * kB
