@@ -133,7 +133,7 @@ class Trap():
 
     def __str__(self):
         repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t, elf.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
         return repr
 
 
