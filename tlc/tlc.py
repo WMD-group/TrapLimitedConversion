@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +9,6 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar, minimize_scalar
 
-from .scfermi import Scfermi, run_scfermi_all
 
 kb_in_eV_per_K = scpc.physical_constants["Boltzmann constant in eV/K"][0]  # 8.6173303e-5 eV K-1, Boltzmann constant
 sun_power = 100.   # AM1.5G standard irradiance in mW/cm^2; https://www.pveducation.org/pvcdrom/appendices/standard-solar-spectra
@@ -189,20 +187,16 @@ class tlc(object):
     Class tlc
 
     ALPHA_FILE: optical absorption coefficient data
-    SCFERMI_FILE: sc-fermi file containing defect formation energies, charge states and degeneracy factors
-    TRAP_FILE: trap file containing defect levels, charge states and capture coefficients
     """
 
     ALPHA_FILE = "alpha.csv"
-    SCFERMI_FILE = "input-fermi.dat"
-    TRAP_FILE = "trap.dat"
 
     @classmethod
     def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0):
         """Create a tlc instance in Shockley-Queisser limit mode."""
         return cls(E_gap, T=T, thickness=thickness, intensity=intensity, l_sq=True)
 
-    def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000,
+    def __init__(self, E_gap, T=300, thickness=2000,
                  intensity=1.0, l_sq=False, alpha_file="alpha.csv"):
         """
         initialise tlc class
@@ -210,7 +204,6 @@ class tlc(object):
         Args:
         E_gap: band gap (eV)
         T: operating temperature (K)
-        Tanneal: annealing temperature (K)
         thickness: film thickness (nm)
         intensity: light concentration, 1.0 = one Sun, 100 mW/cm^2
         l_sq: Shockley-Queisser limit (True) or Trap limited conversion efficiency (False)
@@ -229,7 +222,6 @@ class tlc(object):
         n_v = int(round((E_gap + 0.1) / 0.001))
         self.Vs = np.linspace(-0.1, -0.1 + (n_v - 1) * 0.001, n_v)
         self.T = T
-        self.Tanneal = Tanneal
         self.E_gap = E_gap
         self.thickness = thickness
         self.intensity = intensity  # TODO: Fully implement and remove not in docstring above
@@ -243,7 +235,6 @@ class tlc(object):
             self.absorptivity = np.heaviside(Es - self.E_gap, 1)  # unit-less
             self.alpha = pd.DataFrame(
                 {"E": Es, "alpha": np.heaviside(Es - self.E_gap, 1) * 1E100})
-        self.scfermi = None
         self._defect_data = None
         self.R_SRH = None
         # self.WLs = np.arange(280, 4001, 1.0)
@@ -271,20 +262,6 @@ class tlc(object):
             s += "Efficiency: {:.3f}%".format(self.efficiency*100)
         return s
 
-    def calculate_SRH(self):
-        """
-        get defect-mediated nonradiative recombination rate
-        """
-        warnings.warn(
-            "calculate_SRH() is deprecated. Use calculate_SRH_from_data().",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._get_scfermi(tlc.SCFERMI_FILE)
-        self._run_scfermi(self.Tanneal, self.T, "POSCAR", "totdos.dat")
-        self._read_traps()
-        self.R_SRH = self.__get_R_SRH(self.Vs)
-
     def calculate_SRH_from_data(self, defect_data):
         """Calculate SRH recombination from a DefectData object.
 
@@ -308,10 +285,6 @@ class tlc(object):
         self.v_max, self.j_max, self.efficiency = self.__calc_eff()
         self.ff = self.__calc_ff()
         self.l_calc = True
-
-    def calculate(self):
-        self.calculate_SRH()
-        self.calculate_rad()
 
     def __cal_J_sc(self):
         """
@@ -420,36 +393,6 @@ class tlc(object):
         )  # then thickness in cm times absorption in cm^-1 -> unit-less
         self.absorptivity = np.interp(Es, self.alpha.E, absorptivity)  # unit-less
 
-    # nonradiative recombination:
-    def _get_scfermi(self, file_efrom):
-        """
-        read formation energies of defects, POSCAR, totdos
-        """
-        self.scfermi = Scfermi.from_file(file_efrom)
-
-    def _run_scfermi(self, Tanneal, Tfrozen, poscar_path, totdos_path):
-        """
-        run scfermi 
-        1. calculate equilibrium concentrations of defects at Tanneal
-        2. calcualte charge states of defects and carrier concentrations at Tfrozen
-        """
-        run_scfermi_all(self.scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen, poscar_path=poscar_path, totdos_path=totdos_path)
-
-    def _read_traps(self):
-        """
-        read trap file
-        """
-        trap_list = []
-        df_trap = pd.read_csv(tlc.TRAP_FILE, comment='#', sep=r'\s+', usecols=range(11))
-
-        for index, data in df_trap.iterrows():
-           D, E_t1, E_t2, g, C_p1, C_p2, C_n1, C_n2 = data.D, data.level1, data.level2, data.g, data.C_p1, data.C_p2, data.C_n1, data.C_n2
-           q1, q2, q3 = data.q1, data.q2, data.q3
-           N_t = 0
-           trap_list.append(Trap(D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2))
-
-        self.trap_list = trap_list
-
     def __get_delta_n(self, V):
         """
         calculate excess carrier concentration
@@ -457,35 +400,10 @@ class tlc(object):
         Args:
         V: voltage (V)
         """
-        if self._defect_data is not None:
-            dd = self._defect_data
-            n0 = dd.n0
-            p0 = dd.p0
-            temp = dd.temperature
-        else:
-            scfermi = self.scfermi
-
-            def calc_DOS_eff(carrier_concnt, e_f, temp):
-                """
-                calculate effective DOS
-                Args:
-                carrier_concnt: carrier concentration (cm^-3)
-                e_f: Fermi level (eV)
-                temp: temperature (K)
-                """
-                return carrier_concnt/np.exp(-e_f/(kb_in_eV_per_K*temp))
-
-            n0 = scfermi.n
-            p0 = scfermi.p
-            temp = scfermi.T
-
-            N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
-            N_n = calc_DOS_eff(n0, scfermi.e_gap - scfermi.fermi_level, scfermi.T)
-
-            scfermi.N_p = N_p
-            scfermi.N_n = N_n
-
-        Vc = kb_in_eV_per_K * temp
+        dd = self._defect_data
+        n0 = dd.n0
+        p0 = dd.p0
+        Vc = kb_in_eV_per_K * dd.temperature
 
         delta_n = 1/2. * (-n0 - p0 + np.sqrt((n0 + p0)**2 -
                                              4 * n0 * p0 * (1 - np.exp(V/Vc))))
@@ -496,39 +414,13 @@ class tlc(object):
         """
         calculate defect-mediated nonradiative recombination rate
         """
+        dd = self._defect_data
         delta_n = self.__get_delta_n(V)
-
-        if self._defect_data is not None:
-            dd = self._defect_data
-            n0 = dd.n0
-            p0 = dd.p0
-            N_n = dd.N_n
-            N_p = dd.N_p
-            e_gap = dd.e_gap
-            temp = dd.temperature
-            # N_t already set on traps by caller
-        else:
-            assert self.scfermi is not None
-            scfermi = self.scfermi
-            n0 = scfermi.n
-            p0 = scfermi.p
-            N_n = scfermi.N_n
-            N_p = scfermi.N_p
-            e_gap = scfermi.e_gap
-            temp = scfermi.T
-
-            for trap in self.trap_list:
-                defect = next(
-                    defect for defect in scfermi.defects if defect.name == trap.D)
-                trap.N_t = sum(
-                    cs.concnt
-                    for cs in defect.chg_states
-                    if cs.q in (trap.q1, trap.q2, trap.q3)
-                )
 
         return np.sum(  # R_SRH
             [
-                trap.rate(n0, p0, delta_n, N_n, N_p, e_gap, temp)
+                trap.rate(dd.n0, dd.p0, delta_n, dd.N_n, dd.N_p,
+                          dd.e_gap, dd.temperature)
                 for trap in self.trap_list
             ]
         )
