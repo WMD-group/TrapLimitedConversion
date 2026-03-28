@@ -11,7 +11,7 @@ class DefectData:
 
     This is the interface between external defect tools (e.g. doped)
     and the TLC SRH calculator. Users can create this directly with
-    numerical values or use the from_doped() helper.
+    numerical values or use ``defect_data_from_doped()``.
 
     Parameters
     ----------
@@ -31,6 +31,16 @@ class DefectData:
         Effective valence band DOS (cm^-3).
     traps : list[Trap]
         List of Trap objects with N_t (concentration) already set.
+
+    Examples
+    --------
+    >>> from tlc import Trap, DefectData
+    >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+    ...                          q_initial=0, q_final=-1,
+    ...                          C_p=1e-7, C_n=1e-8)
+    >>> data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
+    ...                   e_gap=1.2, temperature=300,
+    ...                   N_n=1e18, N_p=1e18, traps=[trap])
     """
 
     n0: float

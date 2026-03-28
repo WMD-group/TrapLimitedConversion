@@ -58,24 +58,30 @@ AM15flux = AM15 / (Es*scpc.eV)  # AM15 solar flux; number of incident photons in
 # https://github.com/marcus-cmc/Shockley-Queisser-limit; C. Marcus Chuang 2016
 
 class Trap():
-    """
-    Class Trap
+    """Defect trap level for SRH recombination calculations.
+
+    Supports single-level (two charge state) and two-level (three charge
+    state) defect transitions. Use ``Trap.single_level()`` for the common
+    single-level case.
+
+    Examples
+    --------
+    >>> trap = Trap("V_Cd", E_t1=0.5, N_t=1e15, q1=0, q2=-1, C_p1=1e-7, C_n1=1e-8)
     """
     def __init__(self, name: str, E_t1: float, E_t2: float = 0.0,
                  N_t: float = 0.0, q1: int = 0, q2: int = 0, q3: int = 0,
                  g: float = 1.0, C_p1: float = 0.0, C_p2: float = 0.0,
                  C_n1: float = 0.0, C_n2: float = 0.0):
-        """
-        initialise Trap class
+        """Create a Trap with explicit charge states and capture coefficients.
 
         Parameters
         ----------
         name : str
-            Defect name.
+            Defect name (e.g. ``"V_Cd"``).
         E_t1 : float
-            Energy level 1 (eV).
+            Trap energy level 1 from VBM (eV).
         E_t2 : float
-            Energy level 2 (eV).
+            Trap energy level 2 from VBM (eV). Only used for two-level traps.
         N_t : float
             Total trap concentration (cm^-3).
         q1 : int
@@ -83,17 +89,22 @@ class Trap():
         q2 : int
             Charge state 2.
         q3 : int
-            Charge state 3 (0 for single-level traps).
+            Charge state 3. Set to 0 for single-level (two charge state) traps.
         g : float
             Degeneracy factor.
         C_p1 : float
-            Hole capture coefficient for transition 1.
+            Hole capture coefficient for transition 1 (cm^3 s^-1).
         C_p2 : float
-            Hole capture coefficient for transition 2.
+            Hole capture coefficient for transition 2 (cm^3 s^-1).
         C_n1 : float
-            Electron capture coefficient for transition 1.
+            Electron capture coefficient for transition 1 (cm^3 s^-1).
         C_n2 : float
-            Electron capture coefficient for transition 2.
+            Electron capture coefficient for transition 2 (cm^3 s^-1).
+
+        Examples
+        --------
+        >>> trap = Trap("V_Cd", E_t1=0.5, N_t=1e15, q1=0, q2=-1,
+        ...             C_p1=1e-7, C_n1=1e-8)
         """
         self.D = name  # backward compatibility
         self.E_t1 = E_t1
@@ -119,7 +130,7 @@ class Trap():
         Parameters
         ----------
         name : str
-            Defect name.
+            Defect name (e.g. ``"V_Cd"``).
         E_t : float
             Trap energy level from VBM (eV).
         N_t : float
@@ -131,26 +142,52 @@ class Trap():
         g : float
             Degeneracy factor.
         C_p : float
-            Hole capture coefficient.
+            Hole capture coefficient (cm^3 s^-1).
         C_n : float
-            Electron capture coefficient.
+            Electron capture coefficient (cm^3 s^-1).
+
+        Returns
+        -------
+        Trap
+            A single-level Trap instance with ``q3=0``.
+
+        Examples
+        --------
+        >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+        ...                          q_initial=0, q_final=-1,
+        ...                          C_p=1e-7, C_n=1e-8)
         """
         return cls(name=name, E_t1=E_t, N_t=N_t,
                    q1=q_initial, q2=q_final, q3=0, g=g,
                    C_p1=C_p, C_n1=C_n)
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
-        """
-        calculate defect-mediated nonradiative recombination rate
+        """Compute SRH recombination rate for this trap.
 
-        Args:
-        n0: equilibrium electron concentration (cm^-3)
-        p0: equilibrium hole concentration (cm^-3)
-        delta_n: excess carrier concentration (cm^-3)
-        N_n: effective electron concentration (cm^-3)
-        N_p: effective hole concentration (cm^-3)
-        e_gap: band gap (eV)
-        temp: temperature (K)
+        Uses single-level SRH if ``q3 == 0``, otherwise two-level
+        (three charge state) SRH formalism.
+
+        Parameters
+        ----------
+        n0 : float
+            Equilibrium electron concentration (cm^-3).
+        p0 : float
+            Equilibrium hole concentration (cm^-3).
+        delta_n : float
+            Excess carrier concentration (cm^-3).
+        N_n : float
+            Effective conduction band DOS (cm^-3).
+        N_p : float
+            Effective valence band DOS (cm^-3).
+        e_gap : float
+            Band gap (eV).
+        temp : float
+            Temperature (K).
+
+        Returns
+        -------
+        float or numpy.ndarray
+            SRH recombination rate (cm^-3 s^-1).
         """
         n = n0 + delta_n
         p = p0 + delta_n
@@ -183,31 +220,77 @@ class Trap():
 
 
 class tlc(object):
-    """
-    Class tlc
+    """Trap-Limited Conversion efficiency calculator.
 
-    ALPHA_FILE: optical absorption coefficient data
+    Computes solar cell efficiency accounting for radiative (Shockley-Queisser)
+    and non-radiative (SRH) recombination losses. Supports both the ideal SQ
+    limit (step-function absorptivity) and realistic absorption from alpha(E).
+
+    Examples
+    --------
+    >>> t = tlc.sq_limit(1.34)
+    >>> t.calculate_rad()
+    >>> print(f"Efficiency: {t.efficiency*100:.1f}%")
+    Efficiency: 33.7%
     """
 
     ALPHA_FILE = "alpha.csv"
 
     @classmethod
     def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0):
-        """Create a tlc instance in Shockley-Queisser limit mode."""
+        """Create a tlc instance in Shockley-Queisser limit mode.
+
+        Parameters
+        ----------
+        E_gap : float
+            Band gap (eV).
+        T : float
+            Operating temperature (K).
+        thickness : float
+            Film thickness (nm).
+        intensity : float
+            Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
+
+        Returns
+        -------
+        tlc
+            Instance with step-function absorptivity at ``E_gap``.
+
+        Examples
+        --------
+        >>> t = tlc.sq_limit(1.5)
+        >>> t.calculate_rad()
+        >>> print(f"{t.efficiency*100:.1f}%")
+        32.1%
+        """
         return cls(E_gap, T=T, thickness=thickness, intensity=intensity, l_sq=True)
 
     def __init__(self, E_gap, T=300, thickness=2000,
                  intensity=1.0, l_sq=False, alpha_file="alpha.csv"):
-        """
-        initialise tlc class
+        """Create a TLC calculator instance.
 
-        Args:
-        E_gap: band gap (eV)
-        T: operating temperature (K)
-        thickness: film thickness (nm)
-        intensity: light concentration, 1.0 = one Sun, 100 mW/cm^2
-        l_sq: Shockley-Queisser limit (True) or Trap limited conversion efficiency (False)
-        alpha_file: optical absorption coefficient CSV file path
+        Parameters
+        ----------
+        E_gap : float
+            Band gap (eV). Must be >= 0.31 eV.
+        T : float
+            Operating temperature (K). Must be > 0.
+        thickness : float
+            Film thickness (nm). Converted to cm internally via 1e-7.
+        intensity : float
+            Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
+        l_sq : bool
+            If True, use step-function absorptivity (SQ limit).
+            If False, read absorption coefficient from ``alpha_file``.
+        alpha_file : str
+            Path to CSV file with columns ``E`` (eV) and ``alpha`` (cm^-1).
+            Only used when ``l_sq=False``.
+
+        Examples
+        --------
+        >>> t = tlc(1.5, l_sq=True)
+        >>> t.calculate_rad()
+        >>> print(t.efficiency)
         """
         try:
             E_gap, T, thickness, intensity = float(E_gap), float(
@@ -263,20 +346,50 @@ class tlc(object):
         return s
 
     def calculate_SRH_from_data(self, defect_data):
-        """Calculate SRH recombination from a DefectData object.
+        """Calculate SRH non-radiative recombination from a DefectData object.
+
+        Must be called before ``calculate_rad()`` so that R_SRH is included
+        in the J-V curve.
 
         Parameters
         ----------
         defect_data : DefectData
-            Carrier concentrations and trap properties.
+            Equilibrium carrier concentrations, effective DOS, and trap list.
+
+        Examples
+        --------
+        >>> from tlc import tlc, Trap, DefectData
+        >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+        ...                          q_initial=0, q_final=-1,
+        ...                          C_p=1e-7, C_n=1e-8)
+        >>> data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
+        ...                   e_gap=1.2, temperature=300,
+        ...                   N_n=1e18, N_p=1e18, traps=[trap])
+        >>> t = tlc(1.2, l_sq=True)
+        >>> t.calculate_SRH_from_data(data)
+        >>> t.calculate_rad()
         """
         self._defect_data = defect_data
         self.trap_list = defect_data.traps
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
     def calculate_rad(self):
-        """
-        calculate band-to-band radiative recombination rate
+        """Compute J-V curve, Voc, fill factor, and efficiency.
+
+        Calculates radiative (band-to-band) recombination. If
+        ``calculate_SRH_from_data()`` was called first, SRH non-radiative
+        recombination is also included in the J-V curve.
+
+        After calling, the following attributes are set:
+        ``j_sc``, ``j0_rad``, ``jv``, ``v_oc``, ``v_max``, ``j_max``,
+        ``efficiency``, ``ff``.
+
+        Examples
+        --------
+        >>> t = tlc.sq_limit(1.34)
+        >>> t.calculate_rad()
+        >>> print(f"Eff={t.efficiency*100:.1f}%, Voc={t.v_oc:.3f} V")
+        Eff=33.7%, Voc=1.082 V
         """
         self.j_sc = self.__cal_J_sc()
         self.j0_rad = self.__cal_J0_rad()

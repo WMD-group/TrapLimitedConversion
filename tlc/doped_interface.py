@@ -47,6 +47,15 @@ def defect_data_from_doped(
     -------
     DefectData
         Container with equilibrium carriers, effective DOS, and Trap objects.
+
+    Examples
+    --------
+    >>> from doped.thermodynamics import DefectThermodynamics
+    >>> thermo = DefectThermodynamics.from_json("defect_thermo.json")
+    >>> config = {"V_Cd": {"transitions": [
+    ...     {"q1": 0, "q2": -1, "E_t1": 0.5, "C_p1": 1e-7, "C_n1": 1e-8}
+    ... ]}}
+    >>> data = defect_data_from_doped(thermo, config, temperature=300)
     """
     try:
         from doped.thermodynamics import DefectThermodynamics as _DT  # noqa: F401
