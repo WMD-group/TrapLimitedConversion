@@ -557,7 +557,7 @@ def main_interpolate(path_i, path_f, file, Tfrozen=300, Tanneal=853, n_points=20
 
     for i, scfermi in enumerate(scfermi_list):
         print('{}/{}'.format(i, len(scfermi_list)))
-        run_scfermi_all(scfermi, Tanneal=853, Tfrozen=Tfrozen)
+        run_scfermi_all(scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen)
     write_data(scfermi_list, file)
     print("done")
 
