@@ -63,25 +63,41 @@ class Trap():
     """
     Class Trap
     """
-    def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
+    def __init__(self, name: str, E_t1: float, E_t2: float = 0.0,
+                 N_t: float = 0.0, q1: int = 0, q2: int = 0, q3: int = 0,
+                 g: float = 1.0, C_p1: float = 0.0, C_p2: float = 0.0,
+                 C_n1: float = 0.0, C_n2: float = 0.0):
         """
         initialise Trap class
 
-        Args:
-        D: defect name
-        E_t1: energy level 1 (eV)
-        E_t2: energy level 2 (eV)
-        N_t: total trap concentration (cm^-3)
-        q1: charge state 1
-        q2: charge state 2
-        q3: charge state 3
-        g: degeneracy factor
-        C_p1: hole capture coefficient for defect 1
-        C_p2: hole capture coefficient for defect 2
-        C_n1: electron capture coefficient for defect 1
-        C_n2: electron capture coefficient for defect 2
+        Parameters
+        ----------
+        name : str
+            Defect name.
+        E_t1 : float
+            Energy level 1 (eV).
+        E_t2 : float
+            Energy level 2 (eV).
+        N_t : float
+            Total trap concentration (cm^-3).
+        q1 : int
+            Charge state 1.
+        q2 : int
+            Charge state 2.
+        q3 : int
+            Charge state 3 (0 for single-level traps).
+        g : float
+            Degeneracy factor.
+        C_p1 : float
+            Hole capture coefficient for transition 1.
+        C_p2 : float
+            Hole capture coefficient for transition 2.
+        C_n1 : float
+            Electron capture coefficient for transition 1.
+        C_n2 : float
+            Electron capture coefficient for transition 2.
         """
-        self.D = D
+        self.D = name  # backward compatibility
         self.E_t1 = E_t1
         self.E_t2 = E_t2
         self.N_t = N_t
@@ -94,7 +110,36 @@ class Trap():
         self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
         self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
         self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
-        self.name = "${{{}}} ({}/{}/{})$".format(D, q1, q2, q3) 
+        self.name = "${{{}}} ({}/{}/{})$".format(name, q1, q2, q3)
+
+    @classmethod
+    def single_level(cls, name: str, E_t: float, N_t: float,
+                     q_initial: int, q_final: int, g: float = 1.0,
+                     C_p: float = 0.0, C_n: float = 0.0) -> "Trap":
+        """Create a single-level (two charge state) trap.
+
+        Parameters
+        ----------
+        name : str
+            Defect name.
+        E_t : float
+            Trap energy level from VBM (eV).
+        N_t : float
+            Trap concentration (cm^-3).
+        q_initial : int
+            Initial charge state.
+        q_final : int
+            Final charge state.
+        g : float
+            Degeneracy factor.
+        C_p : float
+            Hole capture coefficient.
+        C_n : float
+            Electron capture coefficient.
+        """
+        return cls(name=name, E_t1=E_t, N_t=N_t,
+                   q1=q_initial, q2=q_final, q3=0, g=g,
+                   C_p1=C_p, C_n1=C_n)
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
         """
