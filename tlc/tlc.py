@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -193,6 +195,7 @@ class tlc(object):
             self.alpha = pd.DataFrame(
                 {"E": Es, "alpha": np.heaviside(Es - self.E_gap, 1) * 1E100})
         self.scfermi = None
+        self._defect_data = None
         self.R_SRH = None
         # self.WLs = np.arange(280, 4001, 1.0)
         # self.AM15nm = np.interp(self.WLs, WL, solar_per_nm)
@@ -223,9 +226,26 @@ class tlc(object):
         """
         get defect-mediated nonradiative recombination rate
         """
+        warnings.warn(
+            "calculate_SRH() is deprecated. Use calculate_SRH_from_data().",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._get_scfermi(tlc.SCFERMI_FILE)
         self._run_scfermi(self.Tanneal, self.T, self.poscar_path, self.totdos_path)
         self._read_traps()
+        self.R_SRH = self.__get_R_SRH(self.Vs)
+
+    def calculate_SRH_from_data(self, defect_data):
+        """Calculate SRH recombination from a DefectData object.
+
+        Parameters
+        ----------
+        defect_data : DefectData
+            Carrier concentrations and trap properties.
+        """
+        self._defect_data = defect_data
+        self.trap_list = defect_data.traps
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
     def calculate_rad(self):
@@ -388,29 +408,35 @@ class tlc(object):
         Args:
         V: voltage (V)
         """
-        scfermi = self.scfermi
+        if self._defect_data is not None:
+            dd = self._defect_data
+            n0 = dd.n0
+            p0 = dd.p0
+            temp = dd.temperature
+        else:
+            scfermi = self.scfermi
 
-        def calc_DOS_eff(carrier_concnt, e_f, temp):
-            """
-            calculate effective DOS
-            Args:
-            carrier_concnt: carrier concentration (cm^-3)
-            e_f: Fermi level (eV)
-            temp: temperature (K)
-            """
-            return carrier_concnt/np.exp(-e_f/(kb_in_eV_per_K*temp))
+            def calc_DOS_eff(carrier_concnt, e_f, temp):
+                """
+                calculate effective DOS
+                Args:
+                carrier_concnt: carrier concentration (cm^-3)
+                e_f: Fermi level (eV)
+                temp: temperature (K)
+                """
+                return carrier_concnt/np.exp(-e_f/(kb_in_eV_per_K*temp))
 
-        n0 = scfermi.n
-        p0 = scfermi.p
-        e_gap = scfermi.e_gap
-        temp = scfermi.T
-        Vc = kb_in_eV_per_K*temp
+            n0 = scfermi.n
+            p0 = scfermi.p
+            temp = scfermi.T
 
-        N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
-        N_n = calc_DOS_eff(n0, e_gap - scfermi.fermi_level, scfermi.T)
+            N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
+            N_n = calc_DOS_eff(n0, scfermi.e_gap - scfermi.fermi_level, scfermi.T)
 
-        scfermi.N_p = N_p
-        scfermi.N_n = N_n
+            scfermi.N_p = N_p
+            scfermi.N_n = N_n
+
+        Vc = kb_in_eV_per_K * temp
 
         delta_n = 1/2. * (-n0 - p0 + np.sqrt((n0 + p0)**2 -
                                              4 * n0 * p0 * (1 - np.exp(V/Vc))))
@@ -421,27 +447,39 @@ class tlc(object):
         """
         calculate defect-mediated nonradiative recombination rate
         """
-        assert self.scfermi is not None
-
         delta_n = self.__get_delta_n(V)
 
-        scfermi = self.scfermi
-        n0 = scfermi.n
-        p0 = scfermi.p
-        N_n = scfermi.N_n
-        N_p = scfermi.N_p
+        if self._defect_data is not None:
+            dd = self._defect_data
+            n0 = dd.n0
+            p0 = dd.p0
+            N_n = dd.N_n
+            N_p = dd.N_p
+            e_gap = dd.e_gap
+            temp = dd.temperature
+            # N_t already set on traps by caller
+        else:
+            assert self.scfermi is not None
+            scfermi = self.scfermi
+            n0 = scfermi.n
+            p0 = scfermi.p
+            N_n = scfermi.N_n
+            N_p = scfermi.N_p
+            e_gap = scfermi.e_gap
+            temp = scfermi.T
 
-        for trap in self.trap_list:
-            defect = next(
-                defect for defect in scfermi.defects if defect.name == trap.D)
-            trap.N_t = sum(
-                cs.concnt
-                for cs in defect.chg_states
-                if cs.q in (trap.q1, trap.q2, trap.q3)
-            )
+            for trap in self.trap_list:
+                defect = next(
+                    defect for defect in scfermi.defects if defect.name == trap.D)
+                trap.N_t = sum(
+                    cs.concnt
+                    for cs in defect.chg_states
+                    if cs.q in (trap.q1, trap.q2, trap.q3)
+                )
+
         return np.sum(  # R_SRH
             [
-                trap.rate(n0, p0, delta_n, N_n, N_p, scfermi.e_gap, scfermi.T)
+                trap.rate(n0, p0, delta_n, N_n, N_p, e_gap, temp)
                 for trap in self.trap_list
             ]
         )
