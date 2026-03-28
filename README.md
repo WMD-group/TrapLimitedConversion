@@ -10,6 +10,59 @@ Tutorials can be found on the [docs](https://traplimitedconversion.readthedocs.i
 
 We acknowledge that some code related to radiative detailed balance was adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is from [NREL](https://www.nrel.gov/grid/solar-resource/spectra.html). 
 
+## Installation
+
+```bash
+pip install -e .          # core
+pip install -e ".[doped]" # with doped integration
+pip install -e ".[dev]"   # with pytest and ruff
+```
+
+## Quick Start (v0.4-dev)
+
+> **Note:** The API below is under active development and may change in v0.5.
+
+### Shockley-Queisser limit
+
+```python
+from tlc import tlc
+
+t = tlc.sq_limit(1.34)
+t.calculate_rad()
+print(f"Efficiency: {t.efficiency*100:.1f}%")  # ~33.7%
+```
+
+### TLC with direct defect input
+
+```python
+from tlc import tlc, Trap, DefectData
+
+trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+                         q_initial=0, q_final=-1,
+                         C_p=1e-7, C_n=1e-8)
+data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
+                  e_gap=1.2, temperature=300,
+                  N_n=1e18, N_p=1e18, traps=[trap])
+t = tlc(1.2, l_sq=True)
+t.calculate_SRH_from_data(data)
+t.calculate_rad()
+print(f"TLC efficiency: {t.efficiency*100:.1f}%")
+```
+
+### TLC with doped integration
+
+```python
+from doped.thermodynamics import DefectThermodynamics
+from tlc.doped_interface import defect_data_from_doped
+
+thermo = DefectThermodynamics.from_json("defect_thermo.json")
+trap_config = {"V_Cd": {"transitions": [
+    {"q1": 0, "q2": -1, "E_t1": 0.5, "C_p1": 1e-7, "C_n1": 1e-8}
+]}}
+data = defect_data_from_doped(thermo, trap_config, temperature=300,
+                              anneal_temperature=900)
+```
+
 ## Related Packages
 
 * [Doped](https://doped.readthedocs.io) - pre- and post-processing of point defect calculations
