@@ -56,18 +56,29 @@ class Trap():
     """Defect trap level for SRH recombination calculations.
 
     Supports single-level (two charge state) and two-level (three charge
-    state) defect transitions. Use ``Trap.single_level()`` for the common
-    single-level case.
+    state) defect transitions. Use the factory classmethods for clarity:
+
+    - ``Trap.single_level()`` — common single-level (two charge state) case
+    - ``Trap.two_level()`` — two-level (three charge state) case
 
     Examples
     --------
-    >>> trap = Trap("V_Cd", E_t1=0.5, N_t=1e15, q1=0, q2=-1, C_p1=1e-7, C_n1=1e-8)
+    >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+    ...                          q_initial=0, q_final=-1,
+    ...                          C_p=1e-7, C_n=1e-8)
+
+    >>> trap = Trap.two_level("V_O", E_t1=0.3, E_t2=0.8, N_t=1e14,
+    ...                       q1=2, q2=1, q3=0,
+    ...                       C_p1=1e-7, C_p2=1e-8,
+    ...                       C_n1=1e-8, C_n2=1e-9)
     """
     def __init__(self, name: str, E_t1: float, E_t2: float = 0.0,
                  N_t: float = 0.0, q1: int = 0, q2: int = 0, q3: int | None = None,
                  g: float = 1.0, C_p1: float = 0.0, C_p2: float = 0.0,
                  C_n1: float = 0.0, C_n2: float = 0.0):
         """Create a Trap with explicit charge states and capture coefficients.
+
+        Prefer ``Trap.single_level()`` or ``Trap.two_level()`` factory methods.
 
         Parameters
         ----------
@@ -95,13 +106,8 @@ class Trap():
             Electron capture coefficient for transition 1 (cm^3 s^-1).
         C_n2 : float
             Electron capture coefficient for transition 2 (cm^3 s^-1).
-
-        Examples
-        --------
-        >>> trap = Trap("V_Cd", E_t1=0.5, N_t=1e15, q1=0, q2=-1,
-        ...             C_p1=1e-7, C_n1=1e-8)
         """
-        self.D = name  # backward compatibility
+        self.defect_name = name
         self.E_t1 = E_t1
         self.E_t2 = E_t2
         self.N_t = N_t
@@ -109,13 +115,31 @@ class Trap():
         self.q2 = q2
         self.q3 = q3
         self.g = g
-        # capture coeff (avoiding div by 0)
-        self.C_p1 = C_p1 if C_p1 > 0 else 1E-100
-        self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
-        self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
-        self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
+        self.C_p1 = C_p1
+        self.C_n1 = C_n1
+        self.C_p2 = C_p2
+        self.C_n2 = C_n2
         q3_str = "-" if q3 is None else str(q3)
         self.name = "${{{}}} ({}/{}/{})$".format(name, q1, q2, q3_str)
+
+    @property
+    def D(self):
+        """Deprecated alias for ``defect_name``."""
+        warnings.warn(
+            "Trap.D is deprecated, use Trap.defect_name",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.defect_name
+
+    @D.setter
+    def D(self, value):
+        warnings.warn(
+            "Trap.D is deprecated, use Trap.defect_name",
+            FutureWarning,
+            stacklevel=2,
+        )
+        self.defect_name = value
 
     @classmethod
     def single_level(cls, name: str, E_t: float, N_t: float,
@@ -157,6 +181,56 @@ class Trap():
                    q1=q_initial, q2=q_final, q3=None, g=g,
                    C_p1=C_p, C_n1=C_n)
 
+    @classmethod
+    def two_level(cls, name: str, E_t1: float, E_t2: float, N_t: float,
+                  q1: int, q2: int, q3: int, g: float = 1.0,
+                  C_p1: float = 0.0, C_p2: float = 0.0,
+                  C_n1: float = 0.0, C_n2: float = 0.0) -> "Trap":
+        """Create a two-level (three charge state) trap.
+
+        Parameters
+        ----------
+        name : str
+            Defect name (e.g. ``"V_O"``).
+        E_t1 : float
+            Trap energy level 1 from VBM (eV).
+        E_t2 : float
+            Trap energy level 2 from VBM (eV).
+        N_t : float
+            Trap concentration (cm^-3).
+        q1 : int
+            Charge state 1.
+        q2 : int
+            Charge state 2.
+        q3 : int
+            Charge state 3.
+        g : float
+            Degeneracy factor.
+        C_p1 : float
+            Hole capture coefficient for transition 1 (cm^3 s^-1).
+        C_p2 : float
+            Hole capture coefficient for transition 2 (cm^3 s^-1).
+        C_n1 : float
+            Electron capture coefficient for transition 1 (cm^3 s^-1).
+        C_n2 : float
+            Electron capture coefficient for transition 2 (cm^3 s^-1).
+
+        Returns
+        -------
+        Trap
+            A two-level Trap instance with ``q3`` set.
+
+        Examples
+        --------
+        >>> trap = Trap.two_level("V_O", E_t1=0.3, E_t2=0.8, N_t=1e14,
+        ...                       q1=2, q2=1, q3=0,
+        ...                       C_p1=1e-7, C_p2=1e-8,
+        ...                       C_n1=1e-8, C_n2=1e-9)
+        """
+        return cls(name=name, E_t1=E_t1, E_t2=E_t2, N_t=N_t,
+                   q1=q1, q2=q2, q3=q3, g=g,
+                   C_p1=C_p1, C_p2=C_p2, C_n1=C_n1, C_n2=C_n2)
+
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
         """Compute SRH recombination rate for this trap.
 
@@ -192,9 +266,16 @@ class Trap():
             n1 = N_n * np.exp(-(e_gap - self.E_t1) / kb_in_eV_per_K / temp)
             p1 = N_p * np.exp(-self.E_t1 / kb_in_eV_per_K / temp)
 
-            R = (n*p - n0*p0) / ((p + p1) / (self.N_t * self.C_n1) + (n + n1) / (self.N_t * self.C_p1))
+            # Guard zero capture coefficients: if C=0, the denominator
+            # term → ∞, so R → 0 (no capture through that channel).
+            C_n1 = self.C_n1 if self.C_n1 > 0 else np.inf
+            C_p1 = self.C_p1 if self.C_p1 > 0 else np.inf
+
+            R = (n*p - n0*p0) / ((p + p1) / (self.N_t * C_n1) + (n + n1) / (self.N_t * C_p1))
 
         else:
+            # Two-level: C values appear as multipliers in numerator,
+            # so zero correctly gives R=0 without special handling.
             P1 = p * self.C_p1 + 1/self.g * self.C_n1 * N_n * np.exp(-(e_gap - self.E_t1) / kb_in_eV_per_K / temp)
             P2 = p * self.C_p2 + self.g * self.C_n2 * N_n * np.exp(-(e_gap - self.E_t2) / kb_in_eV_per_K / temp)
             N1 = n * self.C_n1 + self.g * self.C_p1 * N_p * np.exp(-self.E_t1 / kb_in_eV_per_K / temp)
@@ -207,14 +288,14 @@ class Trap():
     def __repr__(self):
         q3_str = "-" if self.q3 is None else str(self.q3)
         repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(
-            self.D, self.q1, self.q2, q3_str, self.g, self.N_t,
+            self.defect_name, self.q1, self.q2, q3_str, self.g, self.N_t,
             self.E_t1, self.E_t2, self.C_n1, self.C_n2, self.C_p1, self.C_p2)
         return repr
 
     def __str__(self):
         q3_str = "-" if self.q3 is None else str(self.q3)
         repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(
-            self.D, self.q1, self.q2, q3_str, self.g, self.N_t,
+            self.defect_name, self.q1, self.q2, q3_str, self.g, self.N_t,
             self.E_t1, self.E_t2, self.C_n1, self.C_n2, self.C_p1, self.C_p2)
         return repr
 
@@ -445,10 +526,10 @@ class tlc(object):
         if self._defect_data is not None and self.R_SRH is None:
             self.calculate_SRH_from_data(self._defect_data)
 
-        self.j_sc = self.__cal_J_sc()
-        self.j0_rad = self.__cal_J0_rad()
-        self.jv = self.__cal_jv(self.Vs)
-        self.v_oc = self.__cal_v_oc()
+        self.j_sc = self.__calc_j_sc()
+        self.j0_rad = self.__calc_j0_rad()
+        self.jv = self.__calc_jv(self.Vs)
+        self.v_oc = self.__calc_v_oc()
         self.v_max, self.j_max, self.efficiency = self.__calc_eff()
         self.ff = self.__calc_ff()
         self.l_calc = True
@@ -506,7 +587,7 @@ class tlc(object):
         """Alias for calculate(). Kept for backward compatibility."""
         self.calculate()
 
-    def __cal_J_sc(self):
+    def __calc_j_sc(self):
         """
         Calculate and return J_sc, the short circuit current
         J_sc = q * (integrate(AM15flux * absorptivity dE) from 0 to E_gap) / EQE_EL
@@ -523,7 +604,7 @@ class tlc(object):
         J_sc = flux_absorbed * scpc.e * 0.1  # mA/cm^2  (0.1: from A/m2 to mA/cm2)
         return J_sc
 
-    def __cal_J0_rad(self):
+    def __calc_j0_rad(self):
         '''
         Calculate and return J0, the dark saturation current
         J0 = q * (integrate(phi dE) from E to infinity)  / EQE_EL
@@ -539,7 +620,7 @@ class tlc(object):
         j0 = flux_absorbed * scpc.e * 0.1  # (0.1: from A/m2 to mA/cm2)
         return j0
 
-    def __cal_jv(self, Vs):
+    def __calc_jv(self, Vs):
         """
         Calculate and return J-V curve
         J = -J_sc + J0_rad * (exp(qVs/kT) - 1) + R_SRH
@@ -557,7 +638,7 @@ class tlc(object):
         jv = pd.DataFrame({"V": Vs, "J": j})
         return jv
 
-    def __cal_v_oc(self):
+    def __calc_v_oc(self):
         """
         Calculate and return the open circuit voltage
         """
