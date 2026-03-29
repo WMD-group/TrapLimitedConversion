@@ -78,7 +78,7 @@ thermodynamics::
        trap_config={
            "V_Cd": {
                "transitions": [{
-                   "q1": 0, "q2": -1, "q3": 0,
+                   "q1": 0, "q2": -1,
                    "E_t1": 0.5, "g": 1,
                    "C_p1": 1e-7, "C_n1": 1e-8,
                }]
