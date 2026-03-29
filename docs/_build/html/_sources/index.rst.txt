@@ -1,23 +1,39 @@
+TrapLimitedConversion (TLC)
+===========================
 
-TrapLimitedConversion
-=======================================
+``TrapLimitedConversion`` computes solar energy conversion limits of
+inorganic crystals, accounting for defect-mediated non-radiative
+recombination via Shockley-Read-Hall (SRH) theory.
 
-``TrapLimitedConversion`` is an open-source Python package for calculating the solar energy conversion limits of inorganic crystals.
+Key features
+------------
 
+- **Shockley-Queisser limit** with step-function or realistic absorptivity
+- **SRH recombination** from single-level and two-level defect traps
+- **One-step workflow**: pass ``defect_data`` at construction time
+- **Parameter sweeps** with ``to_dataframe()``
+- **Composable plots** via ``ax=`` on all plot methods
+- Integration with `doped <https://doped.readthedocs.io>`_ for carrier concentrations
+
+See the :ref:`tutorial <Tutorials>` for usage examples.
 
 .. toctree::
    :hidden:
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Usage
 
-   Installation
+   installation
    Tutorials
-   Python API <TrapLimitedConversion>
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: API Reference
+
+   api
 
 .. toctree::
    :hidden:
    :caption: Information
-   :maxdepth: 1
 
-   Contributing
-
+   changelog
