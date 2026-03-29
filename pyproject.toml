@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -19,6 +19,15 @@ dependencies = [
 [project.optional-dependencies]
 doped = ["doped>=2.0"]
 dev = ["pytest>=7.0", "ruff>=0.4"]
+
+[project.urls]
+Homepage = "https://github.com/WMD-group/TrapLimitedConversion"
+Documentation = "https://traplimitedconversion.readthedocs.io"
+Repository = "https://github.com/WMD-group/TrapLimitedConversion"
+Changelog = "https://github.com/WMD-group/TrapLimitedConversion/blob/main/CHANGELOG.md"
+
+[tool.setuptools.dynamic]
+version = {attr = "tlc._version.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["."]
