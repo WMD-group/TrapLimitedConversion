@@ -28,7 +28,7 @@ def defect_data_from_doped(
             {
                 "V_Sb": {
                     "transitions": [
-                        {"q1": 0, "q2": -1, "q3": 0, "E_t1": 0.5,
+                        {"q1": 0, "q2": -1, "E_t1": 0.5,
                          "E_t2": 0.0, "g": 1,
                          "C_p1": 1e-7, "C_n1": 1e-8,
                          "C_p2": 0, "C_n2": 0},
@@ -98,8 +98,8 @@ def defect_data_from_doped(
         for trans in config["transitions"]:
             q1 = trans["q1"]
             q2 = trans["q2"]
-            q3 = trans.get("q3", 0)
-            charge_states = {q1, q2, q3}
+            q3 = trans.get("q3", None)
+            charge_states = {q1, q2} if q3 is None else {q1, q2, q3}
 
             # Filter conc_df for this defect and relevant charge states
             mask = (

@@ -13,13 +13,6 @@ from scipy.optimize import root_scalar, minimize_scalar
 kb_in_eV_per_K = scpc.physical_constants["Boltzmann constant in eV/K"][0]  # 8.6173303e-5 eV K-1, Boltzmann constant
 sun_power = 100.   # AM1.5G standard irradiance in mW/cm^2; https://www.pveducation.org/pvcdrom/appendices/standard-solar-spectra
 
-# for reference: (but use scipy.constants values for consistency and accuracy)
-# k = 1.38064852e-23     # m^2 kg s^-2 K^-1, Boltzmann constant
-# h = 6.62607004e-34     # m^2 kg s^-1    , planck constant
-# c = 2.99792458e8       # m s^-1         , speed of light
-# eV = 1.6021766208e-19  # joule        , eV to joule
-# e = 1.6021766208e-19   # C             , elemental charge
-
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 ref_solar = pd.read_csv(os.path.join(MODULE_DIR, "../data/ASTMG173.csv"), header=1)  #
 # http://rredc.nrel.gov/solar/spectra/am1.5 ; Units: nm vs W m^-2 nm^-1
@@ -69,7 +62,7 @@ class Trap():
     >>> trap = Trap("V_Cd", E_t1=0.5, N_t=1e15, q1=0, q2=-1, C_p1=1e-7, C_n1=1e-8)
     """
     def __init__(self, name: str, E_t1: float, E_t2: float = 0.0,
-                 N_t: float = 0.0, q1: int = 0, q2: int = 0, q3: int = 0,
+                 N_t: float = 0.0, q1: int = 0, q2: int = 0, q3: int | None = None,
                  g: float = 1.0, C_p1: float = 0.0, C_p2: float = 0.0,
                  C_n1: float = 0.0, C_n2: float = 0.0):
         """Create a Trap with explicit charge states and capture coefficients.
@@ -88,8 +81,8 @@ class Trap():
             Charge state 1.
         q2 : int
             Charge state 2.
-        q3 : int
-            Charge state 3. Set to 0 for single-level (two charge state) traps.
+        q3 : int or None
+            Charge state 3. None for single-level (two charge state) traps.
         g : float
             Degeneracy factor.
         C_p1 : float
@@ -119,7 +112,8 @@ class Trap():
         self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
         self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
         self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
-        self.name = "${{{}}} ({}/{}/{})$".format(name, q1, q2, q3)
+        q3_str = "-" if q3 is None else str(q3)
+        self.name = "${{{}}} ({}/{}/{})$".format(name, q1, q2, q3_str)
 
     @classmethod
     def single_level(cls, name: str, E_t: float, N_t: float,
@@ -149,7 +143,7 @@ class Trap():
         Returns
         -------
         Trap
-            A single-level Trap instance with ``q3=0``.
+            A single-level Trap instance with ``q3=None``.
 
         Examples
         --------
@@ -158,13 +152,13 @@ class Trap():
         ...                          C_p=1e-7, C_n=1e-8)
         """
         return cls(name=name, E_t1=E_t, N_t=N_t,
-                   q1=q_initial, q2=q_final, q3=0, g=g,
+                   q1=q_initial, q2=q_final, q3=None, g=g,
                    C_p1=C_p, C_n1=C_n)
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
         """Compute SRH recombination rate for this trap.
 
-        Uses single-level SRH if ``q3 == 0``, otherwise two-level
+        Uses single-level SRH if ``q3 is None``, otherwise two-level
         (three charge state) SRH formalism.
 
         Parameters
@@ -192,30 +186,34 @@ class Trap():
         n = n0 + delta_n
         p = p0 + delta_n
 
-        if self.q3 ==00:
-           n1 = N_n*np.exp(-(e_gap-self.E_t1)/kb_in_eV_per_K/temp)
-           p1 = N_p*np.exp(-self.E_t1/kb_in_eV_per_K/temp)
+        if self.q3 is None:
+            n1 = N_n * np.exp(-(e_gap - self.E_t1) / kb_in_eV_per_K / temp)
+            p1 = N_p * np.exp(-self.E_t1 / kb_in_eV_per_K / temp)
 
-           R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n1) + (n+n1)/(self.N_t*self.C_p1))
+            R = (n*p - n0*p0) / ((p + p1) / (self.N_t * self.C_n1) + (n + n1) / (self.N_t * self.C_p1))
 
         else:
-           P1=p*self.C_p1+1/self.g*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb_in_eV_per_K/temp)
-           P2=p*self.C_p2+self.g*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb_in_eV_per_K/temp)
-           N1=n*self.C_n1+self.g*self.C_p1*N_p*np.exp(-self.E_t1/kb_in_eV_per_K/temp)
-           N2=n*self.C_n2+1/self.g*self.C_p2*N_p*np.exp(-self.E_t2/kb_in_eV_per_K/temp)
+            P1 = p * self.C_p1 + 1/self.g * self.C_n1 * N_n * np.exp(-(e_gap - self.E_t1) / kb_in_eV_per_K / temp)
+            P2 = p * self.C_p2 + self.g * self.C_n2 * N_n * np.exp(-(e_gap - self.E_t2) / kb_in_eV_per_K / temp)
+            N1 = n * self.C_n1 + self.g * self.C_p1 * N_p * np.exp(-self.E_t1 / kb_in_eV_per_K / temp)
+            N2 = n * self.C_n2 + 1/self.g * self.C_p2 * N_p * np.exp(-self.E_t2 / kb_in_eV_per_K / temp)
 
-           R = (n*p - n0*p0)*((self.C_n1*self.C_p1*P2+self.C_n2*self.C_p2*N1)/(N1*P2+P1*P2+N1*N2))*self.N_t
+            R = (n*p - n0*p0) * ((self.C_n1 * self.C_p1 * P2 + self.C_n2 * self.C_p2 * N1) / (N1 * P2 + P1 * P2 + N1 * N2)) * self.N_t
 
         return R
 
     def __repr__(self):
-        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+        q3_str = "-" if self.q3 is None else str(self.q3)
+        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(
+            self.D, self.q1, self.q2, q3_str, self.g, self.N_t,
+            self.E_t1, self.E_t2, self.C_n1, self.C_n2, self.C_p1, self.C_p2)
         return repr
 
     def __str__(self):
-        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+        q3_str = "-" if self.q3 is None else str(self.q3)
+        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(
+            self.D, self.q1, self.q2, q3_str, self.g, self.N_t,
+            self.E_t1, self.E_t2, self.C_n1, self.C_n2, self.C_p1, self.C_p2)
         return repr
 
 
@@ -233,8 +231,6 @@ class tlc(object):
     >>> print(f"Efficiency: {t.efficiency*100:.1f}%")
     Efficiency: 33.7%
     """
-
-    ALPHA_FILE = "alpha.csv"
 
     @classmethod
     def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0):
@@ -307,7 +303,7 @@ class tlc(object):
         self.T = T
         self.E_gap = E_gap
         self.thickness = thickness
-        self.intensity = intensity  # TODO: Fully implement and remove not in docstring above
+        self.intensity = intensity
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
         self.alpha_file = alpha_file
@@ -320,8 +316,6 @@ class tlc(object):
                 {"E": Es, "alpha": np.heaviside(Es - self.E_gap, 1) * 1E100})
         self._defect_data = None
         self.R_SRH = None
-        # self.WLs = np.arange(280, 4001, 1.0)
-        # self.AM15nm = np.interp(self.WLs, WL, solar_per_nm)
 
     def __repr__(self):
         """
@@ -580,7 +574,7 @@ class tlc(object):
         if not self.l_sq: 
             plt.title("Absorption coefficient (taken from {})".format(self.alpha_file))
         else: 
-            plt.title("Absorption coefficient (SQ limit)".format(tlc.ALPHA_FILE))
+            plt.title("Absorption coefficient (SQ limit)")
         plt.legend(loc=1)
 
         if l_plot_solar:
@@ -608,7 +602,6 @@ class tlc(object):
 
 
 if __name__ == "__main__":
-    tlc_CZTS = tlc(1.5, T=300)
-    tlc_CZTS.calculate()
-    print(tlc_CZTS)
-    tlc_CZTS.plot_tauc()
+    t = tlc.sq_limit(1.5)
+    t.calculate_rad()
+    print(t)
