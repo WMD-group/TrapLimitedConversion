@@ -30,6 +30,7 @@
 - 3.6: Add DefectData.from_effective_masses() classmethod ✓
 - 3.7: Add Trap.two_level(), clean up Trap internals ✓
 - 3.8: Deprecate l_sq flag, add is_sq property ✓
+- 3.10: Consolidate docs, delete quickstart.rst, update all examples to Stage 3 API ✓
 
 ## Skipped
 - 1.4: __find_max_point — original sign convention is internally consistent, not a bug

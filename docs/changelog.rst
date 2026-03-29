@@ -21,8 +21,26 @@ New Features
 - ``defect_data_from_doped()`` integration with doped package
 - ``Trap.single_level()`` factory for common single-level traps
 - ``tlc.sq_limit()`` classmethod for quick SQ calculations
-- Configurable ``alpha_file`` path
+- Configurable absorption data path
 - Keyword arguments for ``Trap`` class
+
+UX Improvements
+~~~~~~~~~~~~~~~
+- Unified ``calculate()`` method with optional ``defect_data`` at init
+- ``results`` property and ``to_dataframe()`` for parameter sweeps
+- ``ax=`` parameter on all plot methods for matplotlib composability
+- Accept ``pd.DataFrame`` or ``np.ndarray`` for absorption data (``alpha=``)
+- ``TLC`` (uppercase) promoted as canonical class name
+- ``DefectData.from_effective_masses()`` classmethod
+- ``Trap.two_level()`` classmethod
+- ``is_sq`` property (replaces ``l_sq``)
+
+Deprecations
+~~~~~~~~~~~~
+- ``calculate_rad()`` --- use ``calculate()``
+- ``alpha_file=`` --- use ``alpha=``
+- ``l_sq=`` --- use ``TLC.sq_limit()`` or ``is_sq``
+- ``Trap.D`` --- use ``Trap.defect_name``
 
 Refactoring
 ~~~~~~~~~~~
@@ -33,3 +51,4 @@ Refactoring
 - Added ``pyproject.toml`` with modern packaging
 - Added pytest test suite (SQ limit + SRH integration tests)
 - Added GitHub Actions CI
+- Consolidated docs: removed ``quickstart.rst``, dropped ``nbsphinx`` (redundant with ``myst-nb``)

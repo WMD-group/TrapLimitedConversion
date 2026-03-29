@@ -5,29 +5,17 @@ TrapLimitedConversion (TLC)
 inorganic crystals, accounting for defect-mediated non-radiative
 recombination via Shockley-Read-Hall (SRH) theory.
 
-Quick Start
------------
+Key features
+------------
 
-Shockley-Queisser limit::
+- **Shockley-Queisser limit** with step-function or realistic absorptivity
+- **SRH recombination** from single-level and two-level defect traps
+- **One-step workflow**: pass ``defect_data`` at construction time
+- **Parameter sweeps** with ``to_dataframe()``
+- **Composable plots** via ``ax=`` on all plot methods
+- Integration with `doped <https://doped.readthedocs.io>`_ for carrier concentrations
 
-   from tlc import tlc
-   t = tlc.sq_limit(1.34)
-   t.calculate_rad()
-   print(t)  # ~33.7% efficiency
-
-TLC with defect data::
-
-   from tlc import tlc, Trap, DefectData
-   trap = Trap.single_level('V_Cd', E_t=0.5, N_t=1e15,
-                            q_initial=0, q_final=-1,
-                            C_p=1e-7, C_n=1e-8)
-   data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
-                     e_gap=1.2, temperature=300,
-                     N_n=1e18, N_p=1e18, traps=[trap])
-   t = tlc(1.2, l_sq=True)
-   t.calculate_SRH_from_data(data)
-   t.calculate_rad()
-   print(t)
+See the :ref:`tutorial <Tutorials>` for usage examples.
 
 .. toctree::
    :hidden:
@@ -35,7 +23,6 @@ TLC with defect data::
    :caption: Usage
 
    installation
-   quickstart
    Tutorials
 
 .. toctree::

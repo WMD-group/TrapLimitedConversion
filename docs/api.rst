@@ -7,6 +7,10 @@ Main Calculator
    :members:
    :undoc-members:
 
+.. note::
+   ``TLC`` (uppercase) is the recommended import name.
+   ``tlc`` (lowercase) is kept as a backward-compatible alias.
+
 Trap
 ----
 .. autoclass:: tlc.tlc.Trap

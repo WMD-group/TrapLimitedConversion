@@ -19,7 +19,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_design',
     'myst_nb',
-    'nbsphinx',
 ]
 
 source_suffix = {

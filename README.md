@@ -10,7 +10,7 @@ Tools for calculating the solar energy conversion limits of inorganic crystals. 
 
 Tutorials can be found on the [docs](https://traplimitedconversion.readthedocs.io) site.
 
-We acknowledge that some code related to radiative detailed balance was adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is from [NREL](https://www.nrel.gov/grid/solar-resource/spectra.html). 
+We acknowledge that some code related to radiative detailed balance was adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is from [NREL](https://www.nrel.gov/grid/solar-resource/spectra.html).
 
 ## Installation
 
@@ -43,9 +43,9 @@ trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
 data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
                   e_gap=1.2, temperature=300,
                   N_n=1e18, N_p=1e18, traps=[trap])
-t = TLC(1.2, l_sq=True, defect_data=data)
+t = TLC(1.2, alpha="alpha.csv", defect_data=data)
 t.calculate()
-print(f"TLC efficiency: {t.efficiency*100:.1f}%")
+print(t.results)
 ```
 
 ### TLC with doped integration
@@ -60,15 +60,21 @@ trap_config = {"V_Cd": {"transitions": [
 ]}}
 data = defect_data_from_doped(thermo, trap_config, temperature=300,
                               anneal_temperature=900)
+t = TLC(1.2, alpha="alpha.csv", defect_data=data)
+t.calculate()
 ```
+
+The lowercase `tlc` and `calculate_rad()` are still supported for backward compatibility.
+
+See the [tutorial notebook](https://traplimitedconversion.readthedocs.io/en/latest/Tutorials.html) for the full walkthrough.
 
 ## Related Packages
 
 * [Doped](https://doped.readthedocs.io) - pre- and post-processing of point defect calculations
 
-* [ShakeNBreak](https://shakenbreak.readthedocs.io) - approach to find symmetry broken solutions 
+* [ShakeNBreak](https://shakenbreak.readthedocs.io) - approach to find symmetry broken solutions
 
-* [SC-Fermi](https://github.com/jbuckeridge/sc-fermi) / [py-SC-Fermi](https://github.com/bjmorgan/py-sc-fermi) - equilibrium self-consistent Fermi level in Fortran / Python 
+* [SC-Fermi](https://github.com/jbuckeridge/sc-fermi) / [py-SC-Fermi](https://github.com/bjmorgan/py-sc-fermi) - equilibrium self-consistent Fermi level in Fortran / Python
 
 * [Wannier90](http://www.wannier.org) - allows calculation of optical absorption with dense k-point sampling
 

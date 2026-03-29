@@ -22,7 +22,8 @@ realistic absorption spectra and SRH recombination losses.
 - `tlc/doped_interface.py` — defect_data_from_doped() bridge to doped
 - `tlc/__init__.py` — public exports (TLC, tlc, Trap, DefectData, defect_data_from_doped)
 - `data/ASTMG173.csv` — NREL AM1.5G reference solar spectrum
-- `examples/` — Sb2Se3 example notebook and data
+- `examples/tlc.ipynb` — tutorial notebook (docs/tutorial.ipynb is a symlink to this)
+- `examples/Sb2Se3/` — Sb2Se3 example data
 
 ## Units convention
 - Energy: eV
