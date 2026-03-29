@@ -1,3 +1,5 @@
+[![Tests](https://github.com/WMD-group/TrapLimitedConversion/actions/workflows/tests.yml/badge.svg)](https://github.com/WMD-group/TrapLimitedConversion/actions/workflows/tests.yml)
+![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![DOI](https://zenodo.org/badge/263363730.svg)](https://zenodo.org/badge/latestdoi/263363730)
@@ -18,9 +20,7 @@ pip install -e ".[doped]" # with doped integration
 pip install -e ".[dev]"   # with pytest and ruff
 ```
 
-## Quick Start (v0.4-dev)
-
-> **Note:** The API below is under active development and may change in v0.5.
+## Quick Start
 
 ### Shockley-Queisser limit
 
@@ -85,4 +85,4 @@ data = defect_data_from_doped(thermo, trap_config, temperature=300,
 
 ## Development
 
-The project is hosted on [Github](https://github.com/WMD-group/traplimitedconversion). Please use the [issue tracker](https://github.com/WMD-group/carriercapture/issues/) for feature requests, bug reports, and more general questions. If you would like to contribute, please do so via a pull request.
+The project is hosted on [Github](https://github.com/WMD-group/traplimitedconversion). Please use the [issue tracker](https://github.com/WMD-group/TrapLimitedConversion/issues) for feature requests, bug reports, and more general questions. If you would like to contribute, please do so via a pull request.
