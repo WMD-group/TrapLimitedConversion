@@ -233,7 +233,8 @@ class tlc(object):
     """
 
     @classmethod
-    def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0):
+    def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0,
+                 defect_data=None):
         """Create a tlc instance in Shockley-Queisser limit mode.
 
         Parameters
@@ -246,6 +247,8 @@ class tlc(object):
             Film thickness (nm).
         intensity : float
             Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
+        defect_data : DefectData or None
+            If provided, SRH recombination is auto-computed in ``calculate()``.
 
         Returns
         -------
@@ -255,14 +258,16 @@ class tlc(object):
         Examples
         --------
         >>> t = tlc.sq_limit(1.5)
-        >>> t.calculate_rad()
+        >>> t.calculate()
         >>> print(f"{t.efficiency*100:.1f}%")
         32.1%
         """
-        return cls(E_gap, T=T, thickness=thickness, intensity=intensity, l_sq=True)
+        return cls(E_gap, T=T, thickness=thickness, intensity=intensity,
+                   l_sq=True, defect_data=defect_data)
 
     def __init__(self, E_gap, T=300, thickness=2000,
-                 intensity=1.0, l_sq=False, alpha_file="alpha.csv"):
+                 intensity=1.0, l_sq=False, alpha_file="alpha.csv",
+                 defect_data=None):
         """Create a TLC calculator instance.
 
         Parameters
@@ -281,12 +286,23 @@ class tlc(object):
         alpha_file : str
             Path to CSV file with columns ``E`` (eV) and ``alpha`` (cm^-1).
             Only used when ``l_sq=False``.
+        defect_data : DefectData or None
+            If provided, SRH recombination is auto-computed when
+            ``calculate()`` is called, so the user doesn't need to call
+            ``calculate_SRH_from_data()`` separately.
 
         Examples
         --------
+        Radiative-only (SQ limit):
+
         >>> t = tlc(1.5, l_sq=True)
-        >>> t.calculate_rad()
-        >>> print(t.efficiency)
+        >>> t.calculate()
+        >>> print(f"{t.efficiency*100:.1f}%")
+
+        One-step workflow with SRH recombination:
+
+        >>> t = tlc(1.2, l_sq=True, defect_data=my_defect_data)
+        >>> t.calculate()  # auto-computes SRH before J-V
         """
         try:
             E_gap, T, thickness, intensity = float(E_gap), float(
@@ -314,7 +330,7 @@ class tlc(object):
             self.absorptivity = np.heaviside(Es - self.E_gap, 1)  # unit-less
             self.alpha = pd.DataFrame(
                 {"E": Es, "alpha": np.heaviside(Es - self.E_gap, 1) * 1E100})
-        self._defect_data = None
+        self._defect_data = defect_data
         self.R_SRH = None
 
     def __repr__(self):
@@ -367,12 +383,13 @@ class tlc(object):
         self.trap_list = defect_data.traps
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
-    def calculate_rad(self):
+    def calculate(self):
         """Compute J-V curve, Voc, fill factor, and efficiency.
 
-        Calculates radiative (band-to-band) recombination. If
-        ``calculate_SRH_from_data()`` was called first, SRH non-radiative
-        recombination is also included in the J-V curve.
+        If ``defect_data`` was provided at construction time (or via
+        ``calculate_SRH_from_data()``), SRH non-radiative recombination is
+        automatically included. Otherwise, only radiative recombination is
+        considered (Shockley-Queisser limit).
 
         After calling, the following attributes are set:
         ``j_sc``, ``j0_rad``, ``jv``, ``v_oc``, ``v_max``, ``j_max``,
@@ -380,11 +397,22 @@ class tlc(object):
 
         Examples
         --------
+        Radiative only:
+
         >>> t = tlc.sq_limit(1.34)
-        >>> t.calculate_rad()
-        >>> print(f"Eff={t.efficiency*100:.1f}%, Voc={t.v_oc:.3f} V")
-        Eff=33.7%, Voc=1.082 V
+        >>> t.calculate()
+        >>> print(f"Eff={t.efficiency*100:.1f}%")
+        Eff=33.7%
+
+        With SRH (one-step):
+
+        >>> t = tlc(1.2, l_sq=True, defect_data=my_defect_data)
+        >>> t.calculate()
         """
+        # Auto-compute SRH if defect_data provided but R_SRH not yet computed
+        if self._defect_data is not None and self.R_SRH is None:
+            self.calculate_SRH_from_data(self._defect_data)
+
         self.j_sc = self.__cal_J_sc()
         self.j0_rad = self.__cal_J0_rad()
         self.jv = self.__cal_jv(self.Vs)
@@ -392,6 +420,10 @@ class tlc(object):
         self.v_max, self.j_max, self.efficiency = self.__calc_eff()
         self.ff = self.__calc_ff()
         self.l_calc = True
+
+    def calculate_rad(self):
+        """Alias for calculate(). Kept for backward compatibility."""
+        self.calculate()
 
     def __cal_J_sc(self):
         """
