@@ -51,3 +51,25 @@ def test_sq_jsc_positive(sq_1p34):
 def test_sq_j0_rad_positive(sq_1p34):
     assert sq_1p34.j0_rad > 0
     assert sq_1p34.j0_rad < sq_1p34.j_sc * 1e-10
+
+
+def test_results_property(sq_1p34):
+    expected_keys = {"j_sc", "j0_rad", "v_oc", "v_max", "j_max", "ff", "efficiency"}
+    r = sq_1p34.results
+    assert isinstance(r, dict)
+    assert set(r.keys()) == expected_keys
+
+
+def test_results_before_calculate_raises():
+    t = tlc(1.5, l_sq=True)
+    with pytest.raises(RuntimeError, match="No results yet"):
+        _ = t.results
+
+
+def test_to_dataframe(sq_1p34):
+    import pandas as pd
+    df = sq_1p34.to_dataframe()
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 1
+    assert "E_gap" in df.columns
+    assert "efficiency" in df.columns

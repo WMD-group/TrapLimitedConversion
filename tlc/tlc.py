@@ -421,6 +421,55 @@ class tlc(object):
         self.ff = self.__calc_ff()
         self.l_calc = True
 
+    @property
+    def results(self) -> dict:
+        """Return computed results as a dict.
+
+        Returns
+        -------
+        dict
+            Keys: ``"j_sc"``, ``"j0_rad"``, ``"v_oc"``, ``"v_max"``,
+            ``"j_max"``, ``"ff"``, ``"efficiency"``.
+
+        Raises
+        ------
+        RuntimeError
+            If ``calculate()`` has not been called yet.
+        """
+        if not self.l_calc:
+            raise RuntimeError("No results yet. Call calculate() first.")
+        return {
+            "j_sc": self.j_sc,
+            "j0_rad": self.j0_rad,
+            "v_oc": self.v_oc,
+            "v_max": self.v_max,
+            "j_max": self.j_max,
+            "ff": self.ff,
+            "efficiency": self.efficiency,
+        }
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Return results as a single-row DataFrame.
+
+        Includes ``E_gap``, ``T``, and ``thickness`` columns for context,
+        which is useful for parameter sweeps::
+
+            pd.concat([t.to_dataframe() for t in calcs])
+
+        Returns
+        -------
+        pd.DataFrame
+            Single-row DataFrame with input parameters and results.
+
+        Raises
+        ------
+        RuntimeError
+            If ``calculate()`` has not been called yet.
+        """
+        row = {"E_gap": self.E_gap, "T": self.T, "thickness": self.thickness}
+        row.update(self.results)
+        return pd.DataFrame([row])
+
     def calculate_rad(self):
         """Alias for calculate(). Kept for backward compatibility."""
         self.calculate()
