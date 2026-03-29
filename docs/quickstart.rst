@@ -6,10 +6,10 @@ Shockley-Queisser Limit
 
 The simplest calculation --- the radiative efficiency limit for a given band gap::
 
-   from tlc import tlc
+   from tlc import TLC
 
-   t = tlc.sq_limit(1.34)  # band gap in eV
-   t.calculate_rad()
+   t = TLC.sq_limit(1.34)  # band gap in eV
+   t.calculate()
    print(t)
 
 This gives the maximum efficiency assuming only radiative recombination
@@ -20,21 +20,21 @@ TLC with Realistic Absorption
 
 Use a calculated absorption coefficient from DFT::
 
-   from tlc import tlc
+   from tlc import TLC
 
-   t = tlc(1.2, thickness=2000, alpha_file="path/to/alpha.csv")
-   t.calculate_rad()
+   t = TLC(1.2, thickness=2000, alpha="path/to/alpha.csv")
+   t.calculate()
    print(t)
 
-The ``alpha.csv`` file should have columns ``E`` (energy in eV) and
-``alpha`` (absorption coefficient in cm^-1).
+The ``alpha`` argument accepts a file path (str/Path), a DataFrame with
+columns ``E`` and ``alpha``, or a NumPy array of shape ``(N, 2)``.
 
 TLC with Defect Recombination
 ------------------------------
 
 Include SRH non-radiative recombination::
 
-   from tlc import tlc, Trap, DefectData
+   from tlc import TLC, Trap, DefectData
 
    # Define trap properties
    trap = Trap.single_level(
@@ -59,9 +59,8 @@ Include SRH non-radiative recombination::
        traps=[trap],
    )
 
-   t = tlc(1.2, l_sq=True)
-   t.calculate_SRH_from_data(data)
-   t.calculate_rad()
+   t = TLC(1.2, l_sq=True, defect_data=data)
+   t.calculate()
    print(t)
 
 Using doped for Carrier Concentrations
@@ -88,7 +87,6 @@ thermodynamics::
        anneal_temperature=900,
    )
 
-   t = tlc(1.2, l_sq=True)
-   t.calculate_SRH_from_data(data)
-   t.calculate_rad()
+   t = TLC(1.2, l_sq=True, defect_data=data)
+   t.calculate()
    print(t)

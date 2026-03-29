@@ -8,7 +8,7 @@
 
 Tools for calculating the solar energy conversion limits of inorganic crystals. The approach relies on defect-mediated non-radiative recombination values calculated from [CarrierCapture.jl](https://github.com/WMD-group/CarrierCapture.jl) or similar packages such as [NonRad](https://github.com/mturiansky/nonrad).
 
-Tutorials can be found on the [docs](https://traplimitedconversion.readthedocs.io/en/latest/index.html) site.
+Tutorials can be found on the [docs](https://traplimitedconversion.readthedocs.io) site.
 
 We acknowledge that some code related to radiative detailed balance was adapted from https://github.com/marcus-cmc/Shockley-Queisser-limit, while the AM1.5g solar spectrum `ASTMG173.csv` is from [NREL](https://www.nrel.gov/grid/solar-resource/spectra.html). 
 
@@ -25,17 +25,17 @@ pip install -e ".[dev]"   # with pytest and ruff
 ### Shockley-Queisser limit
 
 ```python
-from tlc import tlc
+from tlc import TLC
 
-t = tlc.sq_limit(1.34)
-t.calculate_rad()
+t = TLC.sq_limit(1.34)
+t.calculate()
 print(f"Efficiency: {t.efficiency*100:.1f}%")  # ~33.7%
 ```
 
 ### TLC with direct defect input
 
 ```python
-from tlc import tlc, Trap, DefectData
+from tlc import TLC, Trap, DefectData
 
 trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
                          q_initial=0, q_final=-1,
@@ -43,9 +43,8 @@ trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
 data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
                   e_gap=1.2, temperature=300,
                   N_n=1e18, N_p=1e18, traps=[trap])
-t = tlc(1.2, l_sq=True)
-t.calculate_SRH_from_data(data)
-t.calculate_rad()
+t = TLC(1.2, l_sq=True, defect_data=data)
+t.calculate()
 print(f"TLC efficiency: {t.efficiency*100:.1f}%")
 ```
 
