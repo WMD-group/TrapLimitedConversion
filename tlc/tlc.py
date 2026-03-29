@@ -1,4 +1,6 @@
 import os
+import warnings
+from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -266,8 +268,8 @@ class tlc(object):
                    l_sq=True, defect_data=defect_data)
 
     def __init__(self, E_gap, T=300, thickness=2000,
-                 intensity=1.0, l_sq=False, alpha_file="alpha.csv",
-                 defect_data=None):
+                 intensity=1.0, l_sq=False, alpha="alpha.csv",
+                 defect_data=None, **kwargs):
         """Create a TLC calculator instance.
 
         Parameters
@@ -282,10 +284,14 @@ class tlc(object):
             Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
         l_sq : bool
             If True, use step-function absorptivity (SQ limit).
-            If False, read absorption coefficient from ``alpha_file``.
-        alpha_file : str
-            Path to CSV file with columns ``E`` (eV) and ``alpha`` (cm^-1).
-            Only used when ``l_sq=False``.
+            If False, use absorption data from ``alpha``.
+        alpha : str, Path, pd.DataFrame, or np.ndarray
+            Absorption coefficient data. Only used when ``l_sq=False``.
+
+            - ``str`` or ``Path``: path to CSV with columns ``E`` (eV) and
+              ``alpha`` (cm^-1).
+            - ``pd.DataFrame``: must have columns ``"E"`` and ``"alpha"``.
+            - ``np.ndarray``: shape ``(N, 2)``, columns ``[E, alpha]``.
         defect_data : DefectData or None
             If provided, SRH recombination is auto-computed when
             ``calculate()`` is called, so the user doesn't need to call
@@ -299,11 +305,37 @@ class tlc(object):
         >>> t.calculate()
         >>> print(f"{t.efficiency*100:.1f}%")
 
-        One-step workflow with SRH recombination:
+        From a file path (default):
 
-        >>> t = tlc(1.2, l_sq=True, defect_data=my_defect_data)
-        >>> t.calculate()  # auto-computes SRH before J-V
+        >>> t = tlc(1.2, alpha="path/to/alpha.csv")
+
+        From a DataFrame:
+
+        >>> import pandas as pd
+        >>> df = pd.read_csv("alpha.csv")
+        >>> t = tlc(1.2, alpha=df)
+
+        From a NumPy array:
+
+        >>> data = np.column_stack([energies, absorption])
+        >>> t = tlc(1.2, alpha=data)
         """
+        # Handle deprecated alpha_file keyword
+        if "alpha_file" in kwargs:
+            if alpha != "alpha.csv":
+                raise ValueError(
+                    "Cannot pass both 'alpha' and 'alpha_file'. "
+                    "Use 'alpha' only.")
+            warnings.warn(
+                "alpha_file is deprecated, use alpha=",
+                FutureWarning,
+                stacklevel=2,
+            )
+            alpha = kwargs.pop("alpha_file")
+        if kwargs:
+            raise TypeError(
+                f"Unexpected keyword arguments: {list(kwargs.keys())}")
+
         try:
             E_gap, T, thickness, intensity = float(E_gap), float(
                 T), float(thickness), float(intensity)
@@ -322,7 +354,7 @@ class tlc(object):
         self.intensity = intensity
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
-        self.alpha_file = alpha_file
+        self._alpha_input = alpha
         self.l_sq = l_sq
         if not l_sq:
             self._calc_absorptivity()
@@ -563,19 +595,36 @@ class tlc(object):
         return ff
 
     # absorptivity functions:
-    def __read_alpha(self):
+    def _parse_alpha(self):
+        """Parse absorption coefficient from the stored input.
+
+        Converts ``self._alpha_input`` (str/Path, DataFrame, or ndarray)
+        into a DataFrame with columns ``E`` and ``alpha``, stored as
+        ``self.alpha``.
         """
-        read optical absorption coefficient data
-        """
-        alpha = pd.read_csv(self.alpha_file)
-        # alpha.plot(x='E', y='alpha')
-        self.alpha = alpha
+        alpha = self._alpha_input
+        if isinstance(alpha, (str, Path)):
+            self.alpha = pd.read_csv(alpha)
+        elif isinstance(alpha, pd.DataFrame):
+            if not {"E", "alpha"}.issubset(alpha.columns):
+                raise ValueError(
+                    "DataFrame must have columns 'E' and 'alpha'")
+            self.alpha = alpha
+        elif isinstance(alpha, np.ndarray):
+            if alpha.ndim != 2 or alpha.shape[1] != 2:
+                raise ValueError(
+                    "ndarray must have shape (N, 2) with columns [E, alpha]")
+            self.alpha = pd.DataFrame({"E": alpha[:, 0], "alpha": alpha[:, 1]})
+        else:
+            raise TypeError(
+                f"alpha must be str, Path, DataFrame, or ndarray, "
+                f"got {type(alpha).__name__}")
 
     def _calc_absorptivity(self):
         """
         calculate absorptivity
         """
-        self.__read_alpha()
+        self._parse_alpha()
         absorptivity = 1 - np.exp(
             -2 * self.alpha.alpha * self.thickness * 1e-7  # 1e-7 converts thickness in nm -> cm
         )  # then thickness in cm times absorption in cm^-1 -> unit-less
@@ -655,7 +704,8 @@ class tlc(object):
         ax.set_ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
                       fontsize=16)
         if not self.l_sq:
-            ax.set_title("Absorption coefficient (taken from {})".format(self.alpha_file))
+            label = self._alpha_input if isinstance(self._alpha_input, (str, Path)) else "input data"
+            ax.set_title("Absorption coefficient (taken from {})".format(label))
         else:
             ax.set_title("Absorption coefficient (SQ limit)")
         ax.legend(loc=1)
