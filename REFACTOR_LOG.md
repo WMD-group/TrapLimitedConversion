@@ -1,7 +1,7 @@
 # TLC Refactoring Log
 
-## Current Stage: 2 (Complete)
-## Current Step: done
+## Current Stage: 3 (In Progress)
+## Current Step: 3.3 done
 
 ## Completed Steps
 - 1.1: Fix Trap.__str__ typos (E_t → E_t1, elf → self) ✓
@@ -22,6 +22,9 @@
 - 2.9: Add SRH integration tests (5 tests, all passing) ✓
 - 2.10: Remove scfermi dependency from tlc.py (-116 lines) ✓
 - 2.11: Clean package exports, move scfermi to legacy, version 0.4.0 ✓
+- 3.1: Add unified calculate() method with optional defect_data at init ✓
+- 3.2: Add results property and to_dataframe() method ✓
+- 3.3: Add ax= parameter to all plot methods for composability ✓
 
 ## Skipped
 - 1.4: __find_max_point — original sign convention is internally consistent, not a bug
