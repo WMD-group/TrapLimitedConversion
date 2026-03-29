@@ -621,65 +621,69 @@ class tlc(object):
         return Rs
 
     # Plot helper
-    def plot_tauc(self):
+    def plot_tauc(self, ax=None):
         """
         Plot Tauc figure
         """
+        if ax is None:
+            _, ax = plt.subplots()
         tauc = (self.alpha.alpha*self.alpha.E)**2
-        plt.figure(0)
-        plt.plot(self.alpha.E, tauc)
-        plt.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
-                 ls='--', label="Band gap")
+        ax.plot(self.alpha.E, tauc)
+        ax.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
+                ls='--', label="Band gap")
 
-        plt.xlabel("Energy (eV)", fontsize=16)
-        plt.ylabel(
+        ax.set_xlabel("Energy (eV)", fontsize=16)
+        ax.set_ylabel(
             "$\mathregular{(ahv)^2}$ ($\mathregular{eV^2cm^{-2}}$)", fontsize=16)
-        plt.title("Tauc plot")
-        plt.legend()
-        plt.xlim((self.E_gap-0.5, self.E_gap+0.5))
-        plt.ylim((0, 10E9))
-        # plt.yscale("log")
-        # plt.show()
+        ax.set_title("Tauc plot")
+        ax.legend()
+        ax.set_xlim((self.E_gap-0.5, self.E_gap+0.5))
+        ax.set_ylim((0, 10E9))
+        return ax
 
-    def plot_alpha(self, l_plot_solar=True):
+    def plot_alpha(self, ax=None, l_plot_solar=True):
         """
         plot absorption coefficient figure
         """
-        self.alpha.plot(x='E', y='alpha', logy=True)
-        plt.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
-                 ls='--', label="Band gap")
-        plt.ylim((10E0, 10E6))
-        plt.xlabel("Energy (eV)", fontsize=16)
-        plt.ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
-                   fontsize=16)
-        if not self.l_sq: 
-            plt.title("Absorption coefficient (taken from {})".format(self.alpha_file))
-        else: 
-            plt.title("Absorption coefficient (SQ limit)")
-        plt.legend(loc=1)
+        if ax is None:
+            _, ax = plt.subplots()
+        self.alpha.plot(x='E', y='alpha', logy=True, ax=ax)
+        ax.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
+                ls='--', label="Band gap")
+        ax.set_ylim((10E0, 10E6))
+        ax.set_xlabel("Energy (eV)", fontsize=16)
+        ax.set_ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
+                      fontsize=16)
+        if not self.l_sq:
+            ax.set_title("Absorption coefficient (taken from {})".format(self.alpha_file))
+        else:
+            ax.set_title("Absorption coefficient (SQ limit)")
+        ax.legend(loc=1)
 
         if l_plot_solar:
-            # plt.xlim((0, self.E_gap))
-            plt.twinx()
-            plt.plot(Es, AM15*1E-3, label="AM1.5G", c='gray')
-            plt.ylabel("Spectral irradiation  ($\mathregular{kW m^{-2} eV^{-1}}$)",
-                    fontsize=16)
-            plt.legend(loc=4)
+            ax2 = ax.twinx()
+            ax2.plot(Es, AM15*1E-3, label="AM1.5G", c='gray')
+            ax2.set_ylabel("Spectral irradiation  ($\mathregular{kW m^{-2} eV^{-1}}$)",
+                           fontsize=16)
+            ax2.legend(loc=4)
+            return ax, ax2
 
-        # plt.show()
+        return ax
 
-    def plot_jv(self):
+    def plot_jv(self, ax=None):
         """
         plot J-V curve
         """
-        self.jv.mask(self.jv.J > 100).plot(x="V", y="J")
-        plt.ylim((self.j_sc*-1.2, 0))
-        plt.xlim((0, self.E_gap))
-        plt.xlabel("Voltage (V)", fontsize=16)
-        plt.ylabel("Current density (mA/$\mathregular{cm^2}$)",
-                   fontsize=16)
-        plt.title("Theoretical J-V for Eg = {:.3f} eV".format(self.E_gap))
-        #  plt.show()
+        if ax is None:
+            _, ax = plt.subplots()
+        self.jv.mask(self.jv.J > 100).plot(x="V", y="J", ax=ax)
+        ax.set_ylim((self.j_sc*-1.2, 0))
+        ax.set_xlim((0, self.E_gap))
+        ax.set_xlabel("Voltage (V)", fontsize=16)
+        ax.set_ylabel("Current density (mA/$\mathregular{cm^2}$)",
+                      fontsize=16)
+        ax.set_title("Theoretical J-V for Eg = {:.3f} eV".format(self.E_gap))
+        return ax
 
 
 if __name__ == "__main__":
