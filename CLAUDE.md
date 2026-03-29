@@ -18,9 +18,11 @@ realistic absorption spectra and SRH recombination losses.
 
 ## File structure
 - `tlc/tlc.py` — main TLC calculator class (J_sc, J0_rad, J-V, SRH, plotting)
-- `tlc/scfermi.py` — self-consistent Fermi level solver (to be replaced by doped)
+- `tlc/defect_data.py` — DefectData dataclass and from_effective_masses() factory
+- `tlc/doped_interface.py` — defect_data_from_doped() bridge to doped
+- `tlc/__init__.py` — public exports (TLC, tlc, Trap, DefectData, defect_data_from_doped)
 - `data/ASTMG173.csv` — NREL AM1.5G reference solar spectrum
-- `examples/` — Cu2ZnSnS4 and Sb2Se3 example calculations
+- `examples/` — Sb2Se3 example notebook and data
 
 ## Units convention
 - Energy: eV
@@ -52,15 +54,30 @@ Use scipy.constants throughout. Key values:
 ## Sanity check command (run after EVERY change)
 python -c "from tlc import TLC; t = TLC.sq_limit(1.5); t.calculate(); print(t)"
 
+## Public API
+Primary classes and entry points (all importable from `tlc`):
+- `TLC` — main calculator class (canonical uppercase name; `tlc` is a backward-compat alias)
+  - `TLC.sq_limit(E_gap, ...)` — SQ-limit mode (step-function absorptivity)
+  - `TLC(E_gap, alpha=..., defect_data=...)` — realistic absorption mode
+  - `TLC.calculate()` — run J-V calculation (auto-computes SRH if defect_data set)
+  - `TLC.results` — dict of output quantities
+  - `TLC.to_dataframe()` — single-row DataFrame for parameter sweeps
+- `Trap` — defect trap level for SRH
+  - `Trap.single_level(...)` — two charge state trap (preferred)
+  - `Trap.two_level(...)` — three charge state trap
+- `DefectData` — container for equilibrium carrier data and trap list
+  - `DefectData.from_effective_masses(...)` — compute n0/p0/N_n/N_p from m_e, m_h
+- `defect_data_from_doped(...)` — bridge from doped DefectThermodynamics
+
 ## Current stage
-Pre-release polish for v0.4.0. See REFACTOR_LOG.md.
+Stage 3 complete (v0.4.0). See REFACTOR_LOG.md.
 All changes should be minimal cleanup — no new features, no architecture changes.
 The goal is making the existing code clean, consistent, and well-documented.
 
 ## Rules for changes
 1. ONE task per session — do not refactor multiple things at once
 2. After every change, run the sanity check command above
-3. Do not change function signatures unless explicitly asked
+3. Do not change public API signatures unless explicitly asked. Deprecate with FutureWarning first.
 4. Do not add new dependencies unless explicitly asked
 5. Preserve existing unit conventions (CGS: cm⁻³, mA/cm², cm⁻¹)
 6. Git commit after every successful change with a descriptive message

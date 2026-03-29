@@ -1,7 +1,7 @@
 # TLC Refactoring Log
 
-## Current Stage: 3 (In Progress)
-## Current Step: 3.8 done
+## Current Stage: 3 (Complete)
+## Current Step: done
 
 ## Completed Steps
 - 1.1: Fix Trap.__str__ typos (E_t → E_t1, elf → self) ✓
