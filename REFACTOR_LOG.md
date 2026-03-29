@@ -1,7 +1,7 @@
 # TLC Refactoring Log
 
 ## Current Stage: 3 (In Progress)
-## Current Step: 3.5 done
+## Current Step: 3.6 done
 
 ## Completed Steps
 - 1.1: Fix Trap.__str__ typos (E_t → E_t1, elf → self) ✓
@@ -27,6 +27,7 @@
 - 3.3: Add ax= parameter to all plot methods for composability ✓
 - 3.4: Accept DataFrame/array for absorption data, deprecate alpha_file ✓
 - 3.5: Promote TLC as canonical class name, add __all__ ✓
+- 3.6: Add DefectData.from_effective_masses() classmethod ✓
 
 ## Skipped
 - 1.4: __find_max_point — original sign convention is internally consistent, not a bug
