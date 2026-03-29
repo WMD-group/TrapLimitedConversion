@@ -50,10 +50,12 @@ Use scipy.constants throughout. Key values:
   - J_sc for 1.1 eV → ~44 mA/cm²
 
 ## Sanity check command (run after EVERY change)
-python -c "from tlc.tlc import tlc; t = tlc(1.5, l_sq=True); t.calculate_rad(); print(t)"
+python -c "from tlc import TLC; t = TLC.sq_limit(1.5); t.calculate(); print(t)"
 
 ## Current stage
-See REFACTOR_LOG.md for the current refactoring stage and what has been done.
+Pre-release polish for v0.4.0. See REFACTOR_LOG.md.
+All changes should be minimal cleanup — no new features, no architecture changes.
+The goal is making the existing code clean, consistent, and well-documented.
 
 ## Rules for changes
 1. ONE task per session — do not refactor multiple things at once

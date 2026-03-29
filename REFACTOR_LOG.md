@@ -1,7 +1,7 @@
 # TLC Refactoring Log
 
 ## Current Stage: 3 (In Progress)
-## Current Step: 3.7 done
+## Current Step: 3.8 done
 
 ## Completed Steps
 - 1.1: Fix Trap.__str__ typos (E_t → E_t1, elf → self) ✓
@@ -29,6 +29,7 @@
 - 3.5: Promote TLC as canonical class name, add __all__ ✓
 - 3.6: Add DefectData.from_effective_masses() classmethod ✓
 - 3.7: Add Trap.two_level(), clean up Trap internals ✓
+- 3.8: Deprecate l_sq flag, add is_sq property ✓
 
 ## Skipped
 - 1.4: __find_max_point — original sign convention is internally consistent, not a bug

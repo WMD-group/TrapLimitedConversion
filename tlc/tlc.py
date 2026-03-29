@@ -346,11 +346,11 @@ class tlc(object):
         32.1%
         """
         return cls(E_gap, T=T, thickness=thickness, intensity=intensity,
-                   l_sq=True, defect_data=defect_data)
+                   _sq=True, defect_data=defect_data)
 
     def __init__(self, E_gap, T=300, thickness=2000,
-                 intensity=1.0, l_sq=False, alpha="alpha.csv",
-                 defect_data=None, **kwargs):
+                 intensity=1.0, alpha="alpha.csv",
+                 defect_data=None, _sq=False, **kwargs):
         """Create a TLC calculator instance.
 
         Parameters
@@ -363,11 +363,8 @@ class tlc(object):
             Film thickness (nm). Converted to cm internally via 1e-7.
         intensity : float
             Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
-        l_sq : bool
-            If True, use step-function absorptivity (SQ limit).
-            If False, use absorption data from ``alpha``.
         alpha : str, Path, pd.DataFrame, or np.ndarray
-            Absorption coefficient data. Only used when ``l_sq=False``.
+            Absorption coefficient data.
 
             - ``str`` or ``Path``: path to CSV with columns ``E`` (eV) and
               ``alpha`` (cm^-1).
@@ -380,26 +377,21 @@ class tlc(object):
 
         Examples
         --------
-        Radiative-only (SQ limit):
+        Radiative-only SQ limit (preferred):
 
-        >>> t = tlc(1.5, l_sq=True)
+        >>> t = TLC.sq_limit(1.5)
         >>> t.calculate()
         >>> print(f"{t.efficiency*100:.1f}%")
 
-        From a file path (default):
+        From a file path:
 
-        >>> t = tlc(1.2, alpha="path/to/alpha.csv")
+        >>> t = TLC(1.2, alpha="path/to/alpha.csv")
 
         From a DataFrame:
 
         >>> import pandas as pd
         >>> df = pd.read_csv("alpha.csv")
-        >>> t = tlc(1.2, alpha=df)
-
-        From a NumPy array:
-
-        >>> data = np.column_stack([energies, absorption])
-        >>> t = tlc(1.2, alpha=data)
+        >>> t = TLC(1.2, alpha=df)
         """
         # Handle deprecated alpha_file keyword
         if "alpha_file" in kwargs:
@@ -413,6 +405,17 @@ class tlc(object):
                 stacklevel=2,
             )
             alpha = kwargs.pop("alpha_file")
+
+        # Handle deprecated l_sq keyword
+        sq = _sq
+        if "l_sq" in kwargs:
+            warnings.warn(
+                "l_sq is deprecated, use TLC.sq_limit() instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            sq = kwargs.pop("l_sq")
+
         if kwargs:
             raise TypeError(
                 f"Unexpected keyword arguments: {list(kwargs.keys())}")
@@ -436,8 +439,8 @@ class tlc(object):
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
         self._alpha_input = alpha
-        self.l_sq = l_sq
-        if not l_sq:
+        self._sq = sq
+        if not self._sq:
             self._calc_absorptivity()
         else:
             self.absorptivity = np.heaviside(Es - self.E_gap, 1)  # unit-less
@@ -446,11 +449,26 @@ class tlc(object):
         self._defect_data = defect_data
         self.R_SRH = None
 
+    @property
+    def is_sq(self) -> bool:
+        """True if this instance uses the Shockley-Queisser step-function absorptivity."""
+        return self._sq
+
+    @property
+    def l_sq(self) -> bool:
+        """Deprecated alias for ``is_sq``. Use ``is_sq`` instead."""
+        warnings.warn(
+            "l_sq is deprecated, use is_sq",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._sq
+
     def __repr__(self):
         """
         return string representation of tlc class with input params
         """
-        if self.l_sq:
+        if self._sq:
             s = "Shockley-Queisser limit (SQ limit)\n"
         else:
            s = "Trap limited conversion efficiency (TLC)\n"
@@ -488,9 +506,9 @@ class tlc(object):
         >>> data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
         ...                   e_gap=1.2, temperature=300,
         ...                   N_n=1e18, N_p=1e18, traps=[trap])
-        >>> t = tlc(1.2, l_sq=True)
+        >>> t = TLC.sq_limit(1.2)
         >>> t.calculate_SRH_from_data(data)
-        >>> t.calculate_rad()
+        >>> t.calculate()
         """
         self._defect_data = defect_data
         self.trap_list = defect_data.traps
@@ -519,7 +537,7 @@ class tlc(object):
 
         With SRH (one-step):
 
-        >>> t = tlc(1.2, l_sq=True, defect_data=my_defect_data)
+        >>> t = TLC.sq_limit(1.2, defect_data=my_defect_data)
         >>> t.calculate()
         """
         # Auto-compute SRH if defect_data provided but R_SRH not yet computed
@@ -784,7 +802,7 @@ class tlc(object):
         ax.set_xlabel("Energy (eV)", fontsize=16)
         ax.set_ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
                       fontsize=16)
-        if not self.l_sq:
+        if not self._sq:
             label = self._alpha_input if isinstance(self._alpha_input, (str, Path)) else "input data"
             ax.set_title("Absorption coefficient (taken from {})".format(label))
         else:
