@@ -3,7 +3,7 @@ API Reference
 
 Main Calculator
 ---------------
-.. autoclass:: tlc.tlc.tlc
+.. autoclass:: tlc.TLC
    :members:
    :undoc-members:
 
@@ -13,7 +13,7 @@ Main Calculator
 
 Trap
 ----
-.. autoclass:: tlc.tlc.Trap
+.. autoclass:: tlc.Trap
    :members:
    :undoc-members:
 
