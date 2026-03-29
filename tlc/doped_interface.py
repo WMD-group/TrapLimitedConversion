@@ -5,9 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from tlc.defect_data import DefectData
-from tlc.tlc import Trap
-
-kb_in_eV_per_K = 8.6173303e-5  # eV/K
+from tlc.tlc import Trap, kb_in_eV_per_K
 
 
 def defect_data_from_doped(
@@ -109,7 +107,7 @@ def defect_data_from_doped(
             N_t = conc_df.loc[mask, "Concentration (cm^-3)"].sum()
 
             trap = Trap(
-                D=defect_name,
+                name=defect_name,
                 E_t1=trans["E_t1"],
                 E_t2=trans.get("E_t2", 0.0),
                 N_t=N_t,
