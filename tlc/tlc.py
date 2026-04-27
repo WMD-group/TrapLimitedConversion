@@ -309,8 +309,8 @@ class tlc(object):
 
     Examples
     --------
-    >>> t = tlc.sq_limit(1.34)
-    >>> t.calculate_rad()
+    >>> t = TLC.sq_limit(1.34)
+    >>> t.calculate()
     >>> print(f"Efficiency: {t.efficiency*100:.1f}%")
     Efficiency: 33.7%
     """
@@ -489,8 +489,9 @@ class tlc(object):
     def calculate_SRH_from_data(self, defect_data):
         """Calculate SRH non-radiative recombination from a DefectData object.
 
-        Must be called before ``calculate_rad()`` so that R_SRH is included
-        in the J-V curve.
+        Must be called before ``calculate()`` so that R_SRH is included
+        in the J-V curve. Alternatively, pass defect_data at construction
+        time and call ``calculate()`` directly.
 
         Parameters
         ----------
@@ -499,7 +500,7 @@ class tlc(object):
 
         Examples
         --------
-        >>> from tlc import tlc, Trap, DefectData
+        >>> from tlc import TLC, Trap, DefectData
         >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
         ...                          q_initial=0, q_final=-1,
         ...                          C_p=1e-7, C_n=1e-8)
@@ -836,6 +837,6 @@ class tlc(object):
 
 
 if __name__ == "__main__":
-    t = tlc.sq_limit(1.5)
-    t.calculate_rad()
+    t = TLC.sq_limit(1.5)
+    t.calculate()
     print(t)
