@@ -783,7 +783,7 @@ class tlc(object):
 
         ax.set_xlabel("Energy (eV)", fontsize=16)
         ax.set_ylabel(
-            "$\mathregular{(ahv)^2}$ ($\mathregular{eV^2cm^{-2}}$)", fontsize=16)
+            r"$\mathregular{(ahv)^2}$ ($\mathregular{eV^2cm^{-2}}$)", fontsize=16)
         ax.set_title("Tauc plot")
         ax.legend()
         ax.set_xlim((self.E_gap-0.5, self.E_gap+0.5))
@@ -801,7 +801,7 @@ class tlc(object):
                 ls='--', label="Band gap")
         ax.set_ylim((10E0, 10E6))
         ax.set_xlabel("Energy (eV)", fontsize=16)
-        ax.set_ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
+        ax.set_ylabel(r"Absorption coefficient ($\mathregular{cm^{-1}}$)",
                       fontsize=16)
         if not self._sq:
             label = self._alpha_input if isinstance(self._alpha_input, (str, Path)) else "input data"
@@ -813,7 +813,7 @@ class tlc(object):
         if l_plot_solar:
             ax2 = ax.twinx()
             ax2.plot(Es, AM15*1E-3, label="AM1.5G", c='gray')
-            ax2.set_ylabel("Spectral irradiation  ($\mathregular{kW m^{-2} eV^{-1}}$)",
+            ax2.set_ylabel(r"Spectral irradiation  ($\mathregular{kW m^{-2} eV^{-1}}$)",
                            fontsize=16)
             ax2.legend(loc=4)
             return ax, ax2
@@ -830,7 +830,7 @@ class tlc(object):
         ax.set_ylim((self.j_sc*-1.2, 0))
         ax.set_xlim((0, self.E_gap))
         ax.set_xlabel("Voltage (V)", fontsize=16)
-        ax.set_ylabel("Current density (mA/$\mathregular{cm^2}$)",
+        ax.set_ylabel(r"Current density (mA/$\mathregular{cm^2}$)",
                       fontsize=16)
         ax.set_title("Theoretical J-V for Eg = {:.3f} eV".format(self.E_gap))
         return ax
