@@ -1,2 +1,11 @@
-
 .DS_Store
+__pycache__/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.pyc
+docs/_build/
+.ipynb_checkpoints/
+.pytest_cache/
+docs/_build/

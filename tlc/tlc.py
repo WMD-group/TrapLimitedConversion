@@ -1,4 +1,7 @@
 import os
+import warnings
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,17 +11,9 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar, minimize_scalar
 
-from .scfermi import Scfermi, run_scfermi_all
 
 kb_in_eV_per_K = scpc.physical_constants["Boltzmann constant in eV/K"][0]  # 8.6173303e-5 eV K-1, Boltzmann constant
 sun_power = 100.   # AM1.5G standard irradiance in mW/cm^2; https://www.pveducation.org/pvcdrom/appendices/standard-solar-spectra
-
-# for reference: (but use scipy.constants values for consistency and accuracy)
-# k = 1.38064852e-23     # m^2 kg s^-2 K^-1, Boltzmann constant
-# h = 6.62607004e-34     # m^2 kg s^-1    , planck constant
-# c = 2.99792458e8       # m s^-1         , speed of light
-# eV = 1.6021766208e-19  # joule        , eV to joule
-# e = 1.6021766208e-19   # C             , elemental charge
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 ref_solar = pd.read_csv(os.path.join(MODULE_DIR, "../data/ASTMG173.csv"), header=1)  #
@@ -48,7 +43,7 @@ def ev_to_or_from_nm(eV_or_nm: float):
 
 E = ev_to_or_from_nm(WL)  # eV
 solar_per_E = solar_per_nm * (scpc.eV/1e-9) * scpc.h * scpc.c / (scpc.eV*E)**2  # jacobian transformation, converts solar irradiance to: W m^-2 eV^-1
-Es = np.arange(0.32, 4.401, 0.002)  # equally-spaced energy spectrum for solar irradiance
+Es = np.linspace(0.32, 4.40, 2041)  # equally-spaced energy spectrum for solar irradiance
 
 # linear interpolation to get an equally spaced spectrum
 AM15 = np.interp(Es, E[::-1], solar_per_E[::-1])  # AM15 (standard) solar irradiance in W m^-2 eV^-1
@@ -58,28 +53,61 @@ AM15flux = AM15 / (Es*scpc.eV)  # AM15 solar flux; number of incident photons in
 # https://github.com/marcus-cmc/Shockley-Queisser-limit; C. Marcus Chuang 2016
 
 class Trap():
-    """
-    Class Trap
-    """
-    def __init__(self, D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2):
-        """
-        initialise Trap class
+    """Defect trap level for SRH recombination calculations.
 
-        Args:
-        D: defect name
-        E_t1: energy level 1 (eV)
-        E_t2: energy level 2 (eV)
-        N_t: total trap concentration (cm^-3)
-        q1: charge state 1
-        q2: charge state 2
-        q3: charge state 3
-        g: degeneracy factor
-        C_p1: hole capture coefficient for defect 1
-        C_p2: hole capture coefficient for defect 2
-        C_n1: electron capture coefficient for defect 1
-        C_n2: electron capture coefficient for defect 2
+    Supports single-level (two charge state) and two-level (three charge
+    state) defect transitions. Use the factory classmethods for clarity:
+
+    - ``Trap.single_level()`` — common single-level (two charge state) case
+    - ``Trap.two_level()`` — two-level (three charge state) case
+
+    Examples
+    --------
+    >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+    ...                          q_initial=0, q_final=-1,
+    ...                          C_p=1e-7, C_n=1e-8)
+
+    >>> trap = Trap.two_level("V_O", E_t1=0.3, E_t2=0.8, N_t=1e14,
+    ...                       q1=2, q2=1, q3=0,
+    ...                       C_p1=1e-7, C_p2=1e-8,
+    ...                       C_n1=1e-8, C_n2=1e-9)
+    """
+    def __init__(self, name: str, E_t1: float, E_t2: float = 0.0,
+                 N_t: float = 0.0, q1: int = 0, q2: int = 0, q3: int | None = None,
+                 g: float = 1.0, C_p1: float = 0.0, C_p2: float = 0.0,
+                 C_n1: float = 0.0, C_n2: float = 0.0):
+        """Create a Trap with explicit charge states and capture coefficients.
+
+        Prefer ``Trap.single_level()`` or ``Trap.two_level()`` factory methods.
+
+        Parameters
+        ----------
+        name : str
+            Defect name (e.g. ``"V_Cd"``).
+        E_t1 : float
+            Trap energy level 1 from VBM (eV).
+        E_t2 : float
+            Trap energy level 2 from VBM (eV). Only used for two-level traps.
+        N_t : float
+            Total trap concentration (cm^-3).
+        q1 : int
+            Charge state 1.
+        q2 : int
+            Charge state 2.
+        q3 : int or None
+            Charge state 3. None for single-level (two charge state) traps.
+        g : float
+            Degeneracy factor.
+        C_p1 : float
+            Hole capture coefficient for transition 1 (cm^3 s^-1).
+        C_p2 : float
+            Hole capture coefficient for transition 2 (cm^3 s^-1).
+        C_n1 : float
+            Electron capture coefficient for transition 1 (cm^3 s^-1).
+        C_n2 : float
+            Electron capture coefficient for transition 2 (cm^3 s^-1).
         """
-        self.D = D
+        self.defect_name = name
         self.E_t1 = E_t1
         self.E_t2 = E_t2
         self.N_t = N_t
@@ -87,83 +115,311 @@ class Trap():
         self.q2 = q2
         self.q3 = q3
         self.g = g
-        # capture coeff (avoiding div by 0)
-        self.C_p1 = C_p1 if C_p1 > 0 else 1E-100
-        self.C_n1 = C_n1 if C_n1 > 0 else 1E-100
-        self.C_p2 = C_p2 if C_p2 > 0 else 1E-100
-        self.C_n2 = C_n2 if C_n2 > 0 else 1E-100
-        self.name = "${{{}}} ({}/{}/{})$".format(D, q1, q2, q3) 
+        self.C_p1 = C_p1
+        self.C_n1 = C_n1
+        self.C_p2 = C_p2
+        self.C_n2 = C_n2
+        q3_str = "-" if q3 is None else str(q3)
+        self.name = "${{{}}} ({}/{}/{})$".format(name, q1, q2, q3_str)
+
+    @property
+    def D(self):
+        """Deprecated alias for ``defect_name``."""
+        warnings.warn(
+            "Trap.D is deprecated, use Trap.defect_name",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.defect_name
+
+    @D.setter
+    def D(self, value):
+        warnings.warn(
+            "Trap.D is deprecated, use Trap.defect_name",
+            FutureWarning,
+            stacklevel=2,
+        )
+        self.defect_name = value
+
+    @classmethod
+    def single_level(cls, name: str, E_t: float, N_t: float,
+                     q_initial: int, q_final: int, g: float = 1.0,
+                     C_p: float = 0.0, C_n: float = 0.0) -> "Trap":
+        """Create a single-level (two charge state) trap.
+
+        Parameters
+        ----------
+        name : str
+            Defect name (e.g. ``"V_Cd"``).
+        E_t : float
+            Trap energy level from VBM (eV).
+        N_t : float
+            Trap concentration (cm^-3).
+        q_initial : int
+            Initial charge state.
+        q_final : int
+            Final charge state.
+        g : float
+            Degeneracy factor.
+        C_p : float
+            Hole capture coefficient (cm^3 s^-1).
+        C_n : float
+            Electron capture coefficient (cm^3 s^-1).
+
+        Returns
+        -------
+        Trap
+            A single-level Trap instance with ``q3=None``.
+
+        Examples
+        --------
+        >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+        ...                          q_initial=0, q_final=-1,
+        ...                          C_p=1e-7, C_n=1e-8)
+        """
+        return cls(name=name, E_t1=E_t, N_t=N_t,
+                   q1=q_initial, q2=q_final, q3=None, g=g,
+                   C_p1=C_p, C_n1=C_n)
+
+    @classmethod
+    def two_level(cls, name: str, E_t1: float, E_t2: float, N_t: float,
+                  q1: int, q2: int, q3: int, g: float = 1.0,
+                  C_p1: float = 0.0, C_p2: float = 0.0,
+                  C_n1: float = 0.0, C_n2: float = 0.0) -> "Trap":
+        """Create a two-level (three charge state) trap.
+
+        Parameters
+        ----------
+        name : str
+            Defect name (e.g. ``"V_O"``).
+        E_t1 : float
+            Trap energy level 1 from VBM (eV).
+        E_t2 : float
+            Trap energy level 2 from VBM (eV).
+        N_t : float
+            Trap concentration (cm^-3).
+        q1 : int
+            Charge state 1.
+        q2 : int
+            Charge state 2.
+        q3 : int
+            Charge state 3.
+        g : float
+            Degeneracy factor.
+        C_p1 : float
+            Hole capture coefficient for transition 1 (cm^3 s^-1).
+        C_p2 : float
+            Hole capture coefficient for transition 2 (cm^3 s^-1).
+        C_n1 : float
+            Electron capture coefficient for transition 1 (cm^3 s^-1).
+        C_n2 : float
+            Electron capture coefficient for transition 2 (cm^3 s^-1).
+
+        Returns
+        -------
+        Trap
+            A two-level Trap instance with ``q3`` set.
+
+        Examples
+        --------
+        >>> trap = Trap.two_level("V_O", E_t1=0.3, E_t2=0.8, N_t=1e14,
+        ...                       q1=2, q2=1, q3=0,
+        ...                       C_p1=1e-7, C_p2=1e-8,
+        ...                       C_n1=1e-8, C_n2=1e-9)
+        """
+        return cls(name=name, E_t1=E_t1, E_t2=E_t2, N_t=N_t,
+                   q1=q1, q2=q2, q3=q3, g=g,
+                   C_p1=C_p1, C_p2=C_p2, C_n1=C_n1, C_n2=C_n2)
 
     def rate(self, n0, p0, delta_n, N_n, N_p, e_gap, temp):
-        """
-        calculate defect-mediated nonradiative recombination rate
+        """Compute SRH recombination rate for this trap.
 
-        Args:
-        n0: equilibrium electron concentration (cm^-3)
-        p0: equilibrium hole concentration (cm^-3)
-        delta_n: excess carrier concentration (cm^-3)
-        N_n: effective electron concentration (cm^-3)
-        N_p: effective hole concentration (cm^-3)
-        e_gap: band gap (eV)
-        temp: temperature (K)
+        Uses single-level SRH if ``q3 is None``, otherwise two-level
+        (three charge state) SRH formalism.
+
+        Parameters
+        ----------
+        n0 : float
+            Equilibrium electron concentration (cm^-3).
+        p0 : float
+            Equilibrium hole concentration (cm^-3).
+        delta_n : float
+            Excess carrier concentration (cm^-3).
+        N_n : float
+            Effective conduction band DOS (cm^-3).
+        N_p : float
+            Effective valence band DOS (cm^-3).
+        e_gap : float
+            Band gap (eV).
+        temp : float
+            Temperature (K).
+
+        Returns
+        -------
+        float or numpy.ndarray
+            SRH recombination rate (cm^-3 s^-1).
         """
         n = n0 + delta_n
         p = p0 + delta_n
 
-        if self.q3 ==00:
-           n1 = N_n*np.exp(-(e_gap-self.E_t1)/kb_in_eV_per_K/temp)
-           p1 = N_p*np.exp(-self.E_t1/kb_in_eV_per_K/temp)
+        if self.q3 is None:
+            n1 = N_n * np.exp(-(e_gap - self.E_t1) / kb_in_eV_per_K / temp)
+            p1 = N_p * np.exp(-self.E_t1 / kb_in_eV_per_K / temp)
 
-           R = (n*p - n0*p0)/((p+p1)/(self.N_t*self.C_n1) + (n+n1)/(self.N_t*self.C_p1))
+            # Guard zero capture coefficients: if C=0, the denominator
+            # term → ∞, so R → 0 (no capture through that channel).
+            C_n1 = self.C_n1 if self.C_n1 > 0 else np.inf
+            C_p1 = self.C_p1 if self.C_p1 > 0 else np.inf
+
+            R = (n*p - n0*p0) / ((p + p1) / (self.N_t * C_n1) + (n + n1) / (self.N_t * C_p1))
 
         else:
-           P1=p*self.C_p1+1/self.g*self.C_n1*N_n*np.exp(-(e_gap-self.E_t1)/kb_in_eV_per_K/temp)
-           P2=p*self.C_p2+self.g*self.C_n2*N_n*np.exp(-(e_gap-self.E_t2)/kb_in_eV_per_K/temp)
-           N1=n*self.C_n1+self.g*self.C_p1*N_p*np.exp(-self.E_t1/kb_in_eV_per_K/temp)
-           N2=n*self.C_n2+1/self.g*self.C_p2*N_p*np.exp(-self.E_t2/kb_in_eV_per_K/temp)
+            # Two-level: C values appear as multipliers in numerator,
+            # so zero correctly gives R=0 without special handling.
+            P1 = p * self.C_p1 + 1/self.g * self.C_n1 * N_n * np.exp(-(e_gap - self.E_t1) / kb_in_eV_per_K / temp)
+            P2 = p * self.C_p2 + self.g * self.C_n2 * N_n * np.exp(-(e_gap - self.E_t2) / kb_in_eV_per_K / temp)
+            N1 = n * self.C_n1 + self.g * self.C_p1 * N_p * np.exp(-self.E_t1 / kb_in_eV_per_K / temp)
+            N2 = n * self.C_n2 + 1/self.g * self.C_p2 * N_p * np.exp(-self.E_t2 / kb_in_eV_per_K / temp)
 
-           R = (n*p - n0*p0)*((self.C_n1*self.C_p1*P2+self.C_n2*self.C_p2*N1)/(N1*P2+P1*P2+N1*N2))*self.N_t
+            R = (n*p - n0*p0) * ((self.C_n1 * self.C_p1 * P2 + self.C_n2 * self.C_p2 * N1) / (N1 * P2 + P1 * P2 + N1 * N2)) * self.N_t
 
         return R
 
     def __repr__(self):
-        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+        q3_str = "-" if self.q3 is None else str(self.q3)
+        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(
+            self.defect_name, self.q1, self.q2, q3_str, self.g, self.N_t,
+            self.E_t1, self.E_t2, self.C_n1, self.C_n2, self.C_p1, self.C_p2)
         return repr
 
     def __str__(self):
-        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(self.D,
-                                                                  self.q1, self.q2, self.q3, self.g, self.N_t, self.E_t, elf.E_t1,self.E_t2,self.C_n1, self.C_n2,self.C_p1,self.C_p2)
+        q3_str = "-" if self.q3 is None else str(self.q3)
+        repr = "{}    ({}/{}/{})  {} {:.2E}  {} {} {:.2E}  {:.2E}  {:.2E}  {:.2E}".format(
+            self.defect_name, self.q1, self.q2, q3_str, self.g, self.N_t,
+            self.E_t1, self.E_t2, self.C_n1, self.C_n2, self.C_p1, self.C_p2)
         return repr
 
 
 class tlc(object):
+    """Trap-Limited Conversion efficiency calculator.
+
+    Computes solar cell efficiency accounting for radiative (Shockley-Queisser)
+    and non-radiative (SRH) recombination losses. Supports both the ideal SQ
+    limit (step-function absorptivity) and realistic absorption from alpha(E).
+
+    Examples
+    --------
+    >>> t = TLC.sq_limit(1.34)
+    >>> t.calculate()
+    >>> print(f"Efficiency: {t.efficiency*100:.1f}%")
+    Efficiency: 33.7%
     """
-    Class tlc
 
-    ALPHA_FILE: optical absorption coefficient data
-    SCFERMI_FILE: sc-fermi file containing defect formation energies, charge states and degeneracy factors
-    TRAP_FILE: trap file containing defect levels, charge states and capture coefficients
-    """
+    @classmethod
+    def sq_limit(cls, E_gap, T=300, thickness=2000, intensity=1.0,
+                 defect_data=None):
+        """Create a tlc instance in Shockley-Queisser limit mode.
 
-    ALPHA_FILE = "alpha.csv"
-    SCFERMI_FILE = "input-fermi.dat"
-    TRAP_FILE = "trap.dat"
+        Parameters
+        ----------
+        E_gap : float
+            Band gap (eV).
+        T : float
+            Operating temperature (K).
+        thickness : float
+            Film thickness (nm).
+        intensity : float
+            Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
+        defect_data : DefectData or None
+            If provided, SRH recombination is auto-computed in ``calculate()``.
 
-    def __init__(self, E_gap, T=300, Tanneal=835, thickness=2000, intensity=1.0, l_sq=False, poscar_path="POSCAR", totdos_path="totdos.dat"):
+        Returns
+        -------
+        tlc
+            Instance with step-function absorptivity at ``E_gap``.
+
+        Examples
+        --------
+        >>> t = tlc.sq_limit(1.5)
+        >>> t.calculate()
+        >>> print(f"{t.efficiency*100:.1f}%")
+        32.1%
         """
-        initialise tlc class
+        return cls(E_gap, T=T, thickness=thickness, intensity=intensity,
+                   _sq=True, defect_data=defect_data)
 
-        Args:
-        E_gap: band gap (eV)
-        T: operating temperature (K)
-        Tanneal: annealing temperature (K)
-        thickness: film thickness (nm)
-        intensity: light concentration, 1.0 = one Sun, 100 mW/cm^2
-        l_sq: Shockley-Queisser limit (True) or Trap limited conversion efficiency (False)
-        poscar_path: POSCAR file path
-        totdos_path: total DOS file path
+    def __init__(self, E_gap, T=300, thickness=2000,
+                 intensity=1.0, alpha="alpha.csv",
+                 defect_data=None, _sq=False, **kwargs):
+        """Create a TLC calculator instance.
+
+        Parameters
+        ----------
+        E_gap : float
+            Band gap (eV). Must be >= 0.31 eV.
+        T : float
+            Operating temperature (K). Must be > 0.
+        thickness : float
+            Film thickness (nm). Converted to cm internally via 1e-7.
+        intensity : float
+            Light concentration factor (1.0 = one Sun, 100 mW/cm^2).
+        alpha : str, Path, pd.DataFrame, or np.ndarray
+            Absorption coefficient data.
+
+            - ``str`` or ``Path``: path to CSV with columns ``E`` (eV) and
+              ``alpha`` (cm^-1).
+            - ``pd.DataFrame``: must have columns ``"E"`` and ``"alpha"``.
+            - ``np.ndarray``: shape ``(N, 2)``, columns ``[E, alpha]``.
+        defect_data : DefectData or None
+            If provided, SRH recombination is auto-computed when
+            ``calculate()`` is called, so the user doesn't need to call
+            ``calculate_SRH_from_data()`` separately.
+
+        Examples
+        --------
+        Radiative-only SQ limit (preferred):
+
+        >>> t = TLC.sq_limit(1.5)
+        >>> t.calculate()
+        >>> print(f"{t.efficiency*100:.1f}%")
+
+        From a file path:
+
+        >>> t = TLC(1.2, alpha="path/to/alpha.csv")
+
+        From a DataFrame:
+
+        >>> import pandas as pd
+        >>> df = pd.read_csv("alpha.csv")
+        >>> t = TLC(1.2, alpha=df)
         """
+        # Handle deprecated alpha_file keyword
+        if "alpha_file" in kwargs:
+            if alpha != "alpha.csv":
+                raise ValueError(
+                    "Cannot pass both 'alpha' and 'alpha_file'. "
+                    "Use 'alpha' only.")
+            warnings.warn(
+                "alpha_file is deprecated, use alpha=",
+                FutureWarning,
+                stacklevel=2,
+            )
+            alpha = kwargs.pop("alpha_file")
+
+        # Handle deprecated l_sq keyword
+        sq = _sq
+        if "l_sq" in kwargs:
+            warnings.warn(
+                "l_sq is deprecated, use TLC.sq_limit() instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            sq = kwargs.pop("l_sq")
+
+        if kwargs:
+            raise TypeError(
+                f"Unexpected keyword arguments: {list(kwargs.keys())}")
+
         try:
             E_gap, T, thickness, intensity = float(E_gap), float(
                 T), float(thickness), float(intensity)
@@ -174,33 +430,45 @@ class tlc(object):
         if T <= 0 or E_gap < 0.31:
             raise ValueError("T must be greater than 0 and " +
                              "E_gap cannot be less than 0.31")
-        self.Vs = np.arange(-0.1, E_gap, 0.001)
+        n_v = int(round((E_gap + 0.1) / 0.001))
+        self.Vs = np.linspace(-0.1, -0.1 + (n_v - 1) * 0.001, n_v)
         self.T = T
-        self.Tanneal = Tanneal
         self.E_gap = E_gap
         self.thickness = thickness
-        self.intensity = intensity  # TODO: Fully implement and remove not in docstring above
+        self.intensity = intensity
         self.Es = Es  # np.arange(0.32, 4.401, 0.002)
         self.l_calc = False
-        self.poscar_path = poscar_path
-        self.totdos_path = totdos_path
-        self.l_sq = l_sq
-        if not l_sq:
+        self._alpha_input = alpha
+        self._sq = sq
+        if not self._sq:
             self._calc_absorptivity()
         else:
             self.absorptivity = np.heaviside(Es - self.E_gap, 1)  # unit-less
             self.alpha = pd.DataFrame(
                 {"E": Es, "alpha": np.heaviside(Es - self.E_gap, 1) * 1E100})
-        self.scfermi = None
+        self._defect_data = defect_data
         self.R_SRH = None
-        # self.WLs = np.arange(280, 4001, 1.0)
-        # self.AM15nm = np.interp(self.WLs, WL, solar_per_nm)
+
+    @property
+    def is_sq(self) -> bool:
+        """True if this instance uses the Shockley-Queisser step-function absorptivity."""
+        return self._sq
+
+    @property
+    def l_sq(self) -> bool:
+        """Deprecated alias for ``is_sq``. Use ``is_sq`` instead."""
+        warnings.warn(
+            "l_sq is deprecated, use is_sq",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._sq
 
     def __repr__(self):
         """
         return string representation of tlc class with input params
         """
-        if self.l_sq:
+        if self._sq:
             s = "Shockley-Queisser limit (SQ limit)\n"
         else:
            s = "Trap limited conversion efficiency (TLC)\n"
@@ -218,32 +486,127 @@ class tlc(object):
             s += "Efficiency: {:.3f}%".format(self.efficiency*100)
         return s
 
-    def calculate_SRH(self):
+    def calculate_SRH_from_data(self, defect_data):
+        """Calculate SRH non-radiative recombination from a DefectData object.
+
+        Must be called before ``calculate()`` so that R_SRH is included
+        in the J-V curve. Alternatively, pass defect_data at construction
+        time and call ``calculate()`` directly.
+
+        Parameters
+        ----------
+        defect_data : DefectData
+            Equilibrium carrier concentrations, effective DOS, and trap list.
+
+        Examples
+        --------
+        >>> from tlc import TLC, Trap, DefectData
+        >>> trap = Trap.single_level("V_Cd", E_t=0.5, N_t=1e15,
+        ...                          q_initial=0, q_final=-1,
+        ...                          C_p=1e-7, C_n=1e-8)
+        >>> data = DefectData(n0=1e10, p0=1e16, fermi_level=0.3,
+        ...                   e_gap=1.2, temperature=300,
+        ...                   N_n=1e18, N_p=1e18, traps=[trap])
+        >>> t = TLC.sq_limit(1.2)
+        >>> t.calculate_SRH_from_data(data)
+        >>> t.calculate()
         """
-        get defect-mediated nonradiative recombination rate
-        """
-        self._get_scfermi(tlc.SCFERMI_FILE)
-        self._run_scfermi(self.Tanneal, self.T, self.poscar_path, self.totdos_path)
-        self._read_traps()
+        self._defect_data = defect_data
+        self.trap_list = defect_data.traps
         self.R_SRH = self.__get_R_SRH(self.Vs)
 
-    def calculate_rad(self):
+    def calculate(self):
+        """Compute J-V curve, Voc, fill factor, and efficiency.
+
+        If ``defect_data`` was provided at construction time (or via
+        ``calculate_SRH_from_data()``), SRH non-radiative recombination is
+        automatically included. Otherwise, only radiative recombination is
+        considered (Shockley-Queisser limit).
+
+        After calling, the following attributes are set:
+        ``j_sc``, ``j0_rad``, ``jv``, ``v_oc``, ``v_max``, ``j_max``,
+        ``efficiency``, ``ff``.
+
+        Examples
+        --------
+        Radiative only:
+
+        >>> t = tlc.sq_limit(1.34)
+        >>> t.calculate()
+        >>> print(f"Eff={t.efficiency*100:.1f}%")
+        Eff=33.7%
+
+        With SRH (one-step):
+
+        >>> t = TLC.sq_limit(1.2, defect_data=my_defect_data)
+        >>> t.calculate()
         """
-        calculate band-to-band radiative recombination rate
-        """
-        self.j_sc = self.__cal_J_sc()
-        self.j0_rad = self.__cal_J0_rad()
-        self.jv = self.__cal_jv(self.Vs)
-        self.v_oc = self.__cal_v_oc()
+        # Auto-compute SRH if defect_data provided but R_SRH not yet computed
+        if self._defect_data is not None and self.R_SRH is None:
+            self.calculate_SRH_from_data(self._defect_data)
+
+        self.j_sc = self.__calc_j_sc()
+        self.j0_rad = self.__calc_j0_rad()
+        self.jv = self.__calc_jv(self.Vs)
+        self.v_oc = self.__calc_v_oc()
         self.v_max, self.j_max, self.efficiency = self.__calc_eff()
         self.ff = self.__calc_ff()
         self.l_calc = True
 
-    def calculate(self):
-        self.calculate_SRH()
-        self.calculate_rad()
+    @property
+    def results(self) -> dict:
+        """Return computed results as a dict.
 
-    def __cal_J_sc(self):
+        Returns
+        -------
+        dict
+            Keys: ``"j_sc"``, ``"j0_rad"``, ``"v_oc"``, ``"v_max"``,
+            ``"j_max"``, ``"ff"``, ``"efficiency"``.
+
+        Raises
+        ------
+        RuntimeError
+            If ``calculate()`` has not been called yet.
+        """
+        if not self.l_calc:
+            raise RuntimeError("No results yet. Call calculate() first.")
+        return {
+            "j_sc": self.j_sc,
+            "j0_rad": self.j0_rad,
+            "v_oc": self.v_oc,
+            "v_max": self.v_max,
+            "j_max": self.j_max,
+            "ff": self.ff,
+            "efficiency": self.efficiency,
+        }
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Return results as a single-row DataFrame.
+
+        Includes ``E_gap``, ``T``, and ``thickness`` columns for context,
+        which is useful for parameter sweeps::
+
+            pd.concat([t.to_dataframe() for t in calcs])
+
+        Returns
+        -------
+        pd.DataFrame
+            Single-row DataFrame with input parameters and results.
+
+        Raises
+        ------
+        RuntimeError
+            If ``calculate()`` has not been called yet.
+        """
+        row = {"E_gap": self.E_gap, "T": self.T, "thickness": self.thickness}
+        row.update(self.results)
+        return pd.DataFrame([row])
+
+    def calculate_rad(self):
+        """Alias for calculate(). Kept for backward compatibility."""
+        self.calculate()
+
+    def __calc_j_sc(self):
         """
         Calculate and return J_sc, the short circuit current
         J_sc = q * (integrate(AM15flux * absorptivity dE) from 0 to E_gap) / EQE_EL
@@ -260,7 +623,7 @@ class tlc(object):
         J_sc = flux_absorbed * scpc.e * 0.1  # mA/cm^2  (0.1: from A/m2 to mA/cm2)
         return J_sc
 
-    def __cal_J0_rad(self):
+    def __calc_j0_rad(self):
         '''
         Calculate and return J0, the dark saturation current
         J0 = q * (integrate(phi dE) from E to infinity)  / EQE_EL
@@ -276,7 +639,7 @@ class tlc(object):
         j0 = flux_absorbed * scpc.e * 0.1  # (0.1: from A/m2 to mA/cm2)
         return j0
 
-    def __cal_jv(self, Vs):
+    def __calc_jv(self, Vs):
         """
         Calculate and return J-V curve
         J = -J_sc + J0_rad * (exp(qVs/kT) - 1) + R_SRH
@@ -294,7 +657,7 @@ class tlc(object):
         jv = pd.DataFrame({"V": Vs, "J": j})
         return jv
 
-    def __cal_v_oc(self):
+    def __calc_v_oc(self):
         """
         Calculate and return the open circuit voltage
         """
@@ -319,7 +682,7 @@ class tlc(object):
         power = self.jv.J * self.jv.V
 
         def eff(v): return interp1d(self.jv.V, power)(v) \
-            / sun_power * self.intensity
+            / (sun_power * self.intensity)
 
         def j(v): return interp1d(self.jv.V, self.jv.J)(v)
         return v_max, -j(v_max), -eff(v_max)
@@ -332,53 +695,40 @@ class tlc(object):
         return ff
 
     # absorptivity functions:
-    def __read_alpha(self):
+    def _parse_alpha(self):
+        """Parse absorption coefficient from the stored input.
+
+        Converts ``self._alpha_input`` (str/Path, DataFrame, or ndarray)
+        into a DataFrame with columns ``E`` and ``alpha``, stored as
+        ``self.alpha``.
         """
-        read optical absorption coefficient data
-        """
-        alpha = pd.read_csv(tlc.ALPHA_FILE)
-        # alpha.plot(x='E', y='alpha')
-        self.alpha = alpha
+        alpha = self._alpha_input
+        if isinstance(alpha, (str, Path)):
+            self.alpha = pd.read_csv(alpha)
+        elif isinstance(alpha, pd.DataFrame):
+            if not {"E", "alpha"}.issubset(alpha.columns):
+                raise ValueError(
+                    "DataFrame must have columns 'E' and 'alpha'")
+            self.alpha = alpha
+        elif isinstance(alpha, np.ndarray):
+            if alpha.ndim != 2 or alpha.shape[1] != 2:
+                raise ValueError(
+                    "ndarray must have shape (N, 2) with columns [E, alpha]")
+            self.alpha = pd.DataFrame({"E": alpha[:, 0], "alpha": alpha[:, 1]})
+        else:
+            raise TypeError(
+                f"alpha must be str, Path, DataFrame, or ndarray, "
+                f"got {type(alpha).__name__}")
 
     def _calc_absorptivity(self):
         """
         calculate absorptivity
         """
-        self.__read_alpha()
+        self._parse_alpha()
         absorptivity = 1 - np.exp(
             -2 * self.alpha.alpha * self.thickness * 1e-7  # 1e-7 converts thickness in nm -> cm
         )  # then thickness in cm times absorption in cm^-1 -> unit-less
         self.absorptivity = np.interp(Es, self.alpha.E, absorptivity)  # unit-less
-
-    # nonradiative recombination:
-    def _get_scfermi(self, file_efrom):
-        """
-        read formation energies of defects, POSCAR, totdos
-        """
-        self.scfermi = Scfermi.from_file(file_efrom)
-
-    def _run_scfermi(self, Tanneal, Tfrozen, poscar_path, totdos_path):
-        """
-        run scfermi 
-        1. calculate equilibrium concentrations of defects at Tanneal
-        2. calcualte charge states of defects and carrier concentrations at Tfrozen
-        """
-        run_scfermi_all(self.scfermi, Tanneal=Tanneal, Tfrozen=Tfrozen, poscar_path=poscar_path, totdos_path=totdos_path)
-
-    def _read_traps(self):
-        """
-        read trap file
-        """
-        trap_list = []
-        df_trap = pd.read_csv(tlc.TRAP_FILE, comment='#', sep=r'\s+', usecols=range(11))
-
-        for index, data in df_trap.iterrows():
-           D, E_t1, E_t2, g, C_p1, C_p2, C_n1, C_n2 = data.D, data.level1, data.level2, data.g, data.C_p1, data.C_p2, data.C_n1, data.C_n2
-           q1, q2, q3 = data.q1, data.q2, data.q3
-           N_t = 0
-           trap_list.append(Trap(D, E_t1, E_t2, N_t, q1, q2, q3, g, C_p1, C_p2, C_n1, C_n2))
-
-        self.trap_list = trap_list
 
     def __get_delta_n(self, V):
         """
@@ -387,32 +737,10 @@ class tlc(object):
         Args:
         V: voltage (V)
         """
-        scfermi = self.scfermi
-
-        def calc_DOS_eff(carrier_concnt, e_f, temp):
-            """
-            calculate effective DOS
-            Args:
-            carrier_concnt: carrier concentration (cm^-3)
-            e_f: Fermi level (eV)
-            temp: temperature (K)
-            """
-            return carrier_concnt/np.exp(-e_f/(kb_in_eV_per_K*temp))
-
-        n0 = scfermi.n
-        p0 = scfermi.p
-        e_gap = scfermi.e_gap
-        temp = scfermi.T
-        Vc = kb_in_eV_per_K*temp
-
-        N_p = calc_DOS_eff(p0, scfermi.fermi_level, scfermi.T)
-        N_n = calc_DOS_eff(n0, e_gap - scfermi.fermi_level, scfermi.T)
-
-        print(f"N_p: {N_p}")
-        print(f"N_n: {N_n}")
-
-        scfermi.N_p = N_p
-        scfermi.N_n = N_n
+        dd = self._defect_data
+        n0 = dd.n0
+        p0 = dd.p0
+        Vc = kb_in_eV_per_K * dd.temperature
 
         delta_n = 1/2. * (-n0 - p0 + np.sqrt((n0 + p0)**2 -
                                              4 * n0 * p0 * (1 - np.exp(V/Vc))))
@@ -423,27 +751,13 @@ class tlc(object):
         """
         calculate defect-mediated nonradiative recombination rate
         """
-        assert self.scfermi is not None
-
+        dd = self._defect_data
         delta_n = self.__get_delta_n(V)
 
-        scfermi = self.scfermi
-        n0 = scfermi.n
-        p0 = scfermi.p
-        N_n = scfermi.N_n
-        N_p = scfermi.N_p
-
-        for trap in self.trap_list:
-            defect = next(
-                defect for defect in scfermi.defects if defect.name == trap.D)
-            trap.N_t = sum(
-                cs.concnt
-                for cs in defect.chg_states
-                if cs.q in (trap.q1, trap.q2, trap.q3)
-            )
         return np.sum(  # R_SRH
             [
-                trap.rate(n0, p0, delta_n, N_n, N_p, scfermi.e_gap, scfermi.T)
+                trap.rate(dd.n0, dd.p0, delta_n, dd.N_n, dd.N_p,
+                          dd.e_gap, dd.temperature)
                 for trap in self.trap_list
             ]
         )
@@ -456,69 +770,73 @@ class tlc(object):
         return Rs
 
     # Plot helper
-    def plot_tauc(self):
+    def plot_tauc(self, ax=None):
         """
         Plot Tauc figure
         """
+        if ax is None:
+            _, ax = plt.subplots()
         tauc = (self.alpha.alpha*self.alpha.E)**2
-        plt.figure(0)
-        plt.plot(self.alpha.E, tauc)
-        plt.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
-                 ls='--', label="Band gap")
+        ax.plot(self.alpha.E, tauc)
+        ax.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
+                ls='--', label="Band gap")
 
-        plt.xlabel("Energy (eV)", fontsize=16)
-        plt.ylabel(
-            "$\mathregular{(ahv)^2}$ ($\mathregular{eV^2cm^{-2}}$)", fontsize=16)
-        plt.title("Tauc plot")
-        plt.legend()
-        plt.xlim((self.E_gap-0.5, self.E_gap+0.5))
-        plt.ylim((0, 10E9))
-        # plt.yscale("log")
-        # plt.show()
+        ax.set_xlabel("Energy (eV)", fontsize=16)
+        ax.set_ylabel(
+            r"$\mathregular{(ahv)^2}$ ($\mathregular{eV^2cm^{-2}}$)", fontsize=16)
+        ax.set_title("Tauc plot")
+        ax.legend()
+        ax.set_xlim((self.E_gap-0.5, self.E_gap+0.5))
+        ax.set_ylim((0, 10E9))
+        return ax
 
-    def plot_alpha(self, l_plot_solar=True):
+    def plot_alpha(self, ax=None, l_plot_solar=True):
         """
         plot absorption coefficient figure
         """
-        self.alpha.plot(x='E', y='alpha', logy=True)
-        plt.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
-                 ls='--', label="Band gap")
-        plt.ylim((10E0, 10E6))
-        plt.xlabel("Energy (eV)", fontsize=16)
-        plt.ylabel("Absorption coefficient ($\mathregular{cm^{-1}}$)",
-                   fontsize=16)
-        if not self.l_sq: 
-            plt.title("Absorption coefficient (taken from {})".format(tlc.ALPHA_FILE))
-        else: 
-            plt.title("Absorption coefficient (SQ limit)".format(tlc.ALPHA_FILE))
-        plt.legend(loc=1)
+        if ax is None:
+            _, ax = plt.subplots()
+        self.alpha.plot(x='E', y='alpha', logy=True, ax=ax)
+        ax.plot([self.E_gap, self.E_gap], [-1E10, 1E10],
+                ls='--', label="Band gap")
+        ax.set_ylim((10E0, 10E6))
+        ax.set_xlabel("Energy (eV)", fontsize=16)
+        ax.set_ylabel(r"Absorption coefficient ($\mathregular{cm^{-1}}$)",
+                      fontsize=16)
+        if not self._sq:
+            label = self._alpha_input if isinstance(self._alpha_input, (str, Path)) else "input data"
+            ax.set_title("Absorption coefficient (taken from {})".format(label))
+        else:
+            ax.set_title("Absorption coefficient (SQ limit)")
+        ax.legend(loc=1)
 
         if l_plot_solar:
-            # plt.xlim((0, self.E_gap))
-            plt.twinx()
-            plt.plot(Es, AM15*1E-3, label="AM1.5G", c='gray')
-            plt.ylabel("Spectral irradiation  ($\mathregular{kW m^{-2} eV^{-1}}$)",
-                    fontsize=16)
-            plt.legend(loc=4)
+            ax2 = ax.twinx()
+            ax2.plot(Es, AM15*1E-3, label="AM1.5G", c='gray')
+            ax2.set_ylabel(r"Spectral irradiation  ($\mathregular{kW m^{-2} eV^{-1}}$)",
+                           fontsize=16)
+            ax2.legend(loc=4)
+            return ax, ax2
 
-        # plt.show()
+        return ax
 
-    def plot_jv(self):
+    def plot_jv(self, ax=None):
         """
         plot J-V curve
         """
-        self.jv.mask(self.jv.J > 100).plot(x="V", y="J")
-        plt.ylim((self.j_sc*-1.2, 0))
-        plt.xlim((0, self.E_gap))
-        plt.xlabel("Voltage (V)", fontsize=16)
-        plt.ylabel("Current density (mA/$\mathregular{cm^2}$)",
-                   fontsize=16)
-        plt.title("Theoretical J-V for Eg = {:.3f} eV".format(self.E_gap))
-        #  plt.show()
+        if ax is None:
+            _, ax = plt.subplots()
+        self.jv.mask(self.jv.J > 100).plot(x="V", y="J", ax=ax)
+        ax.set_ylim((self.j_sc*-1.2, 0))
+        ax.set_xlim((0, self.E_gap))
+        ax.set_xlabel("Voltage (V)", fontsize=16)
+        ax.set_ylabel(r"Current density (mA/$\mathregular{cm^2}$)",
+                      fontsize=16)
+        ax.set_title("Theoretical J-V for Eg = {:.3f} eV".format(self.E_gap))
+        return ax
 
 
 if __name__ == "__main__":
-    tlc_CZTS = tlc(1.5, T=300)
-    tlc_CZTS.calculate()
-    print(tlc_CZTS)
-    tlc_CZTS.plot_tauc()
+    t = TLC.sq_limit(1.5)
+    t.calculate()
+    print(t)
