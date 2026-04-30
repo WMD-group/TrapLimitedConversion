@@ -1,5 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Legacy self-consistent Fermi level solver.
+
+.. deprecated:: 0.4.0
+   Use :func:`tlc.doped_interface.defect_data_from_doped` with
+   ``doped.thermodynamics.DefectThermodynamics`` instead. This
+   module is no longer imported by the public API and will be
+   removed in a future release.
+"""
+
+import warnings
+warnings.warn(
+    "tlc.legacy.scfermi is deprecated and will be removed in a "
+    "future release. Use defect_data_from_doped() instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 from collections import deque
 # import subprocess
