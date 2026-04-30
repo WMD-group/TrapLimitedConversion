@@ -24,7 +24,7 @@ dev = ["pytest>=7.0", "ruff>=0.4"]
 Homepage = "https://github.com/WMD-group/TrapLimitedConversion"
 Documentation = "https://traplimitedconversion.readthedocs.io"
 Repository = "https://github.com/WMD-group/TrapLimitedConversion"
-Changelog = "https://github.com/WMD-group/TrapLimitedConversion/blob/main/CHANGELOG.md"
+Changelog = "https://traplimitedconversion.readthedocs.io/en/latest/changelog.html"
 
 [tool.setuptools.dynamic]
 version = {attr = "tlc._version.__version__"}
