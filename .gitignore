@@ -8,3 +8,4 @@ build/
 docs/_build/
 .ipynb_checkpoints/
 .pytest_cache/
+docs/_build/
